@@ -1,0 +1,41 @@
+{% extends "main/base_dashboard.html" %}
+
+{% block title %}Auditoría{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Registro de Auditoría</h2>
+  <table class="table table-striped sortable">
+    <thead class="table-primary">
+      <tr>
+        <th>ID</th>
+        <th>Fecha y Hora</th>
+        <th>Usuario</th>
+        <th>Acción</th>
+        <th>Detalles (resumido)</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.id }}</td>
+        <td>{{ log.timestamp }}</td>
+        <td>{% if log.user %}{{ log.user.username }}{% else %}Desconocido{% endif %}</td>
+        <td>{{ log.action }}</td>
+        <td>
+          {% if log.details|length > 50 %}
+            {{ log.details|slice:":50" }}...
+          {% else %}
+            {{ log.details }}
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'audit_detail' log.id %}" class="btn btn-sm btn-info">Ver</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

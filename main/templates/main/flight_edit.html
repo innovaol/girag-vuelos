@@ -1,0 +1,170 @@
+{% extends "main/base_dashboard.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Editar Vuelo{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Editar Vuelo: {{ flight.flight_number }}</h2>
+
+  <!-- Formulario de edición del vuelo -->
+  <form method="POST" enctype="multipart/form-data" id="flight-edit-form" class="row g-3">
+    {% csrf_token %}
+
+    <!-- Campos del vuelo -->
+    <div class="col-md-4">
+      <label for="{{ form.flight_number.id_for_label }}" class="form-label">{{ form.flight_number.label }}</label>
+      {{ form.flight_number|add_class:"form-control required-field" }}
+      <div class="invalid-feedback">El número de vuelo es obligatorio.</div>
+    </div>
+    <div class="col-md-4">
+      <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
+      {{ form.date|add_class:"form-control required-field" }}
+      <div class="invalid-feedback">La fecha es obligatoria.</div>
+    </div>
+    <div class="col-md-4">
+      <label for="{{ form.airline.id_for_label }}" class="form-label">{{ form.airline.label }}</label>
+      {{ form.airline|add_class:"form-select required-field" }}
+      <div class="invalid-feedback">Selecciona una aerolínea.</div>
+    </div>
+
+    <!-- Campo oculto para almacenar IDs de documentos marcados para eliminación -->
+    <input type="hidden" name="removed_documents" id="removed_documents" value="">
+
+    <!-- Sección para mostrar archivos adjuntos existentes -->
+    {% if documents %}
+      <div class="col-12 mt-4">
+        <h4>Archivos adjuntos existentes</h4>
+        <ul class="list-group" id="existing-documents">
+          {% for doc in documents %}
+            <li class="list-group-item d-flex justify-content-between align-items-center" data-doc-id="{{ doc.id }}">
+              <span><strong>{{ doc.doc_type }}</strong> – {{ doc.file.name|cut:"documents/" }}</span>
+              <button type="button" class="btn btn-sm btn-danger remove-existing-doc">Eliminar</button>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <!-- Sección para adjuntar nuevos documentos -->
+    <div class="col-12 mt-4">
+      <h4>Adjuntar Nuevos Documentos</h4>
+      <div id="new-file-fields">
+        <div class="file-upload mb-2 row align-items-end">
+          <div class="col-md-5">
+            <input type="file" name="file_1" class="form-control file-input">
+          </div>
+          <div class="col-md-5">
+            <select name="file_1_type" class="form-select file-type" data-file-input="file_1">
+              <option value="">Tipo de archivo</option>
+              {% for dt in document_types %}
+                <option value="{{ dt.id }}">{{ dt.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button type="button" id="add-new-file-field" class="btn btn-secondary btn-sm">Agregar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="error-message" class="alert alert-danger d-none"></div>
+
+    <!-- Botones al final del formulario -->
+    <div class="col-12 mt-4">
+      <button type="submit" class="btn btn-success">Guardar Cambios</button>
+      <a href="{% url 'manage_flights' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      const removedDocsInput = document.getElementById("removed_documents");
+      const errorMessage = document.getElementById("error-message");
+      const form = document.getElementById("flight-edit-form");
+      let fileCounter = 1;
+
+      // Validación de formulario antes de enviar
+      form.addEventListener("submit", function(event){
+        let errors = [];
+
+        // Validar campos obligatorios
+        document.querySelectorAll(".required-field").forEach(field => {
+          if (!field.value.trim()) {
+            field.classList.add("is-invalid");
+            errors.push(field.previousElementSibling.textContent + " es obligatorio.");
+          } else {
+            field.classList.remove("is-invalid");
+          }
+        });
+
+        // Validar archivos adjuntos
+        document.querySelectorAll(".file-input").forEach((fileInput, index) => {
+          let fileType = document.querySelector(`[data-file-input="file_${index + 1}"]`);
+          if (fileInput.value && !fileType.value) {
+            errors.push("Debe seleccionar un tipo de documento para cada archivo subido.");
+          }
+        });
+
+        // Si hay errores, cancelar el envío y mostrar mensajes
+        if (errors.length > 0) {
+          event.preventDefault();
+          errorMessage.innerHTML = errors.join("<br>");
+          errorMessage.classList.remove("d-none");
+        } else {
+          errorMessage.classList.add("d-none");
+        }
+      });
+
+      // Manejo de eliminación de documentos existentes
+      document.querySelectorAll(".remove-existing-doc").forEach(button => {
+        button.addEventListener("click", function(){
+          const li = this.closest("li");
+          const docId = li.getAttribute("data-doc-id");
+          let current = removedDocsInput.value ? removedDocsInput.value.split(",") : [];
+          if (!current.includes(docId)) {
+            current.push(docId);
+          }
+          removedDocsInput.value = current.join(",");
+          li.remove();
+        });
+      });
+
+      // Agregar nuevos campos de archivos dinámicamente
+      const newFileFields = document.getElementById("new-file-fields");
+      const addButton = document.getElementById("add-new-file-field");
+
+      addButton.addEventListener("click", function(){
+        fileCounter++;
+        let div = document.createElement("div");
+        div.classList.add("file-upload", "mb-2", "row", "align-items-end");
+        div.innerHTML = `
+          <div class="col-md-5">
+            <input type="file" name="file_${fileCounter}" class="form-control file-input">
+          </div>
+          <div class="col-md-5">
+            <select name="file_${fileCounter}_type" class="form-select file-type" data-file-input="file_${fileCounter}">
+              <option value="">Tipo de archivo</option>
+              {% for dt in document_types %}
+                <option value="{{ dt.id }}">{{ dt.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="remove-new-file-field btn btn-sm btn-danger">Eliminar</button>
+          </div>
+        `;
+        newFileFields.appendChild(div);
+        div.querySelector(".remove-new-file-field").addEventListener("click", function(){
+          div.remove();
+        });
+      });
+    });
+  </script>
+{% endblock %}

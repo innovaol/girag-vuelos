@@ -1,0 +1,35 @@
+{% extends "main/base.html" %}
+{% block title %}Inicio - App Vuelos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mt-4">Lista de Vuelos</h2>
+    <table class="table table-striped mt-3">
+        <thead class="table-primary">
+            <tr>
+                <th>ID</th>
+                <th>Número de Vuelo</th>
+                <th>Fecha</th>
+                <th>Aerolínea</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for flight in flights %}
+            <tr>
+                <td>{{ flight.id }}</td>
+                <td>{{ flight.flight_number }}</td>
+                <td>{{ flight.date }}</td>
+                <td>{{ flight.airline }}</td>
+                <td>
+                    <a href="#" class="btn btn-sm btn-info">Detalles</a>
+                    <a href="#" class="btn btn-sm btn-danger">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted">No hay vuelos registrados.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "main/base_dashboard.html" %}
+
+{% block title %}Gestionar Tipos de Documentos{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Lista de Tipos de Documentos</h2>
+  <a href="{% url 'create_document_type' %}" class="btn btn-primary mb-3">Crear Tipo de Documento</a>
+  <table class="table table-striped sortable">
+    <thead class="table-primary">
+      <tr>
+        <th>ID</th>
+        <th>Tipo de Documento</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dt in doc_types %}
+      <tr>
+        <td>{{ dt.id }}</td>
+        <td>{{ dt.name }}</td>
+        <td>
+          <a href="{% url 'edit_document_type' dt.id %}" class="btn btn-sm btn-info">Editar</a>
+          <a href="{% url 'delete_document_type' dt.id %}" class="btn btn-sm btn-danger"
+             onclick="return confirm('¿Estás seguro de eliminar este tipo de documento?');">
+             Eliminar
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+      {# Deja el <tbody> vacío si no hay registros #}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

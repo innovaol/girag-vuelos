@@ -1,0 +1,39 @@
+{% extends "main/base_dashboard.html" %}
+
+{% block title %}Gestionar Grupos{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Lista de Grupos</h2>
+  <a href="{% url 'create_group' %}" class="btn btn-primary mb-3">Crear Grupo</a>
+  <table class="table table-striped sortable">
+    <thead class="table-primary">
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Permisos</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in groups %}
+      <tr>
+        <td>{{ group.id }}</td>
+        <td>{{ group.name }}</td>
+        <td>
+          {% for perm in group.permissions.all %}
+            {{ perm.name }}<br>
+          {% endfor %}
+        </td>
+        <td>
+          <a href="{% url 'edit_group' group.id %}" class="btn btn-sm btn-info">Editar</a>
+          <a href="{% url 'delete_group' group.id %}" class="btn btn-sm btn-danger"
+             onclick="return confirm('¿Estás seguro de eliminar este grupo?');">Eliminar</a>
+        </td>
+      </tr>
+      {% endfor %}
+      {# Si no hay registros, el <tbody> quedará vacío y DataTables mostrará el mensaje emptyTable configurado #}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

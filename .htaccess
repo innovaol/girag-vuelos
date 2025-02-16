@@ -1,0 +1,7 @@
+<IfModule mod_alias.c>
+    Alias /static/ /home/innovaol/AppVuelos/staticfiles/
+</IfModule>
+
+<Directory /home/innovaol/AppVuelos/staticfiles/>
+    Require all granted
+</Directory>

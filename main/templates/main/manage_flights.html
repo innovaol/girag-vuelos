@@ -1,0 +1,46 @@
+{% extends "main/base_dashboard.html" %}
+
+{% block title %}Gestionar Vuelos{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Lista de Vuelos</h2>
+  <a href="{% url 'create_flight' %}" class="btn btn-primary mb-3">Crear Vuelo</a>
+  <table class="table table-striped sortable">
+    <thead class="table-primary">
+      <tr>
+        <th>ID</th>
+        <th>Número de Vuelo</th>
+        <th>Fecha</th>
+        <th>Aerolínea</th>
+        <th>Documentos</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for flight in flights %}
+      <tr>
+        <td>{{ flight.id }}</td>
+        <td>{{ flight.flight_number }}</td>
+        <td>{{ flight.date }}</td>
+        <td>{{ flight.airline }}</td>
+        <td>
+          {# Se muestra la lista de tipos de documento asociados #}
+          {% for doc in flight.documents.all %}
+            {{ doc.doc_type }}{% if not forloop.last %}, {% endif %}
+          {% empty %}
+            Sin documentos
+          {% endfor %}
+        </td>
+        <td>
+          <a href="{% url 'flight_detail' flight.id %}" class="btn btn-sm btn-secondary">Ver</a>
+          <a href="{% url 'edit_flight' flight.id %}" class="btn btn-sm btn-info">Editar</a>
+          <a href="{% url 'delete_flight' flight.id %}" class="btn btn-sm btn-danger"
+             onclick="return confirm('¿Estás seguro de eliminar este vuelo?');">Eliminar</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

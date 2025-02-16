@@ -1,0 +1,21 @@
+{% extends "main/base_dashboard.html" %}
+
+{% block title %}Crear Aerolínea{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Crear Aerolínea</h2>
+  <form method="POST">
+    {% csrf_token %}
+    <div class="mb-3">
+      {{ form.name.label_tag }}
+      {{ form.name }}
+      {% for error in form.name.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-success">Guardar</button>
+    <a href="{% url 'manage_airlines' %}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

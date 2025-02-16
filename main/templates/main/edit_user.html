@@ -1,0 +1,70 @@
+{% extends "main/base_dashboard.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Editar Usuario{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Editar Usuario: {{ user_obj.username }}</h2>
+  <form method="POST" class="row g-3">
+    {% csrf_token %}
+    
+    <div class="col-md-6">
+      <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
+      {{ form.username|add_class:"form-control" |attr:"placeholder:Ingrese el nombre de usuario" }}
+      {% for error in form.username.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+    
+    <div class="col-md-6">
+      <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+      {{ form.email|add_class:"form-control" |attr:"placeholder:Ingrese el correo electrónico" }}
+      {% for error in form.email.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+    
+    <div class="col-md-6">
+      <label for="{{ form.first_name.id_for_label }}" class="form-label">{{ form.first_name.label }}</label>
+      {{ form.first_name|add_class:"form-control" |attr:"placeholder:Ingrese el nombre" }}
+      {% for error in form.first_name.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+    
+    <div class="col-md-6">
+      <label for="{{ form.last_name.id_for_label }}" class="form-label">{{ form.last_name.label }}</label>
+      {{ form.last_name|add_class:"form-control" |attr:"placeholder:Ingrese el apellido" }}
+      {% for error in form.last_name.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+    
+    <div class="col-md-6">
+      <div class="form-check">
+        {{ form.is_active|add_class:"form-check-input" }}
+        <label for="{{ form.is_active.id_for_label }}" class="form-check-label">{{ form.is_active.label }}</label>
+        {% for error in form.is_active.errors %}
+          <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="form-check">
+        {{ form.is_staff|add_class:"form-check-input" }}
+        <label for="{{ form.is_staff.id_for_label }}" class="form-check-label">{{ form.is_staff.label }}</label>
+        {% for error in form.is_staff.errors %}
+          <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <div class="col-12">
+      <button type="submit" class="btn btn-success">Guardar Cambios</button>
+      <a href="{% url 'manage_users' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
