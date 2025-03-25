@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="page-header">Configuración de la Plataforma</h1>
+            </div>
+        </div>
+        <div class="row">
+            <!-- Secciones -->
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-list text-info"></i> Secciones</h3>
+                    </div>
+                    <div class="card-body text-center">
+                        <p>Habilitar o deshabilitar secciones de la plataforma.</p>
+                        <a href="{% url 'manage_navigation_sections' %}" class="btn btn-outline-info">Ir a Secciones</a>
+                    </div>
+                </div>
+            </div>
+            <!-- Columna vacía para mantener el equilibrio visual -->
+            <div class="col-md-6"></div>
+        </div> <!-- segunda fila -->
+    </div> <!-- container-fluid -->
+</div> <!-- content -->
+{% endblock %}

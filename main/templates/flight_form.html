@@ -1,0 +1,235 @@
+<!-- /home/innovaol/AppVuelos/main/templates/flight_form.html -->
+
+{% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}
+  {% if edit_mode %}Editar Vuelo{% else %}Crear Nuevo Vuelo{% endif %}
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">{% if edit_mode %}Editar Vuelo{% else %}Crear Nuevo Vuelo{% endif %}</h2>
+
+  {% if edit_mode and perms.main.edit_flight or not edit_mode and perms.main.create_flight %}
+  <form id="flightForm" method="POST" enctype="multipart/form-data" class="row g-3" novalidate>
+    {% csrf_token %}
+
+    <!-- Fecha de Creación (solo visual) -->
+    <div class="col-md-4">
+      <label class="form-label">Fecha de Creación</label>
+      <input type="text" class="form-control" value="{% if edit_mode %}{{ flight.created_at|date:"d/m/Y" }}{% else %}{% now 'd/m/Y' %}{% endif %}" disabled>
+    </div>
+
+    <!-- Número de Vuelo -->
+    <div class="col-md-6">
+      <label for="{{ form.flight_number.id_for_label }}" class="form-label">Número de Vuelo</label>
+      {{ form.flight_number|add_class:"form-control" |attr:"placeholder:Ingrese el número de vuelo" }}
+      <div class="invalid-feedback" style="display: none;">El número de vuelo es obligatorio.</div>
+    </div>
+
+    <!-- Fecha del Vuelo -->
+    <div class="col-md-4">
+      <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
+      {{ form.date|add_class:"form-control" |attr:"placeholder:Ingrese la fecha del vuelo" }}
+      <div class="invalid-feedback" style="display: none;">La fecha del vuelo es obligatoria.</div>
+    </div>
+
+    <!-- Aerolínea -->
+    <div class="col-md-6">
+      <label for="id_airline" class="form-label">Aerolínea</label>
+      {{ form.airline|add_class:"form-control" |attr:"id:id_airline" }}
+      <div class="invalid-feedback" style="display: none;">Selecciona una aerolínea.</div>
+    </div>
+
+    <!-- Aeronave -->
+    <div class="col-md-6">
+      <label for="id_aircraft" class="form-label">Aeronave</label>
+      {{ form.aircraft|add_class:"form-control" |attr:"id:id_aircraft" }}
+      <div class="invalid-feedback" style="display: none;">Selecciona una aeronave.</div>
+    </div>
+
+    {# Se mantiene la sección de documentos adjuntos (funcionalidad original) #}
+    {% if edit_mode %}
+      <input type="hidden" name="removed_documents" id="removed_documents" value="">
+      {% if documents %}
+      <div class="col-12 mt-4">
+        <h4>Archivos adjuntos existentes</h4>
+        <ul class="list-group" id="existing-documents">
+          {% for doc in documents %}
+            <li class="list-group-item d-flex justify-content-between align-items-center" data-doc-id="{{ doc.id }}">
+              <span><strong>{{ doc.doc_type }}</strong> – {{ doc.file.name|cut:"documents/" }}</span>
+              <button type="button" class="btn btn-sm btn-danger remove-existing-doc">Eliminar</button>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    {% endif %}
+
+    <div class="col-12 mt-4">
+      <h4>Adjuntar Documentos</h4>
+      <div id="file-error-message" class="text-danger small" style="display: none;">Debes especificar el tipo de documento para los archivos no completados.</div>
+      <div id="new-file-fields">
+        <div class="file-upload mb-2 row align-items-end">
+          <div class="col-md-5">
+            <input type="file" name="file_1" class="form-control file-input required-file" data-uploaded="false">
+          </div>
+          <div class="col-md-5">
+            <select name="file_1_type" class="form-select file-type required-file-type" data-file-input="file_1">
+              <option value="">Tipo de archivo</option>
+              {% for dt in document_types %}
+                <option value="{{ dt.id }}">{{ dt.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button type="button" id="add-new-file-field" class="btn btn-secondary btn-sm">Agregar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botones (estilo estándar) -->
+    <div class="col-12 mt-4">
+      <button type="submit" class="btn btn-primary" id="submit-btn">
+        <span id="submit-text">{% if edit_mode %}Guardar Cambios{% else %}Crear Vuelo{% endif %}</span>
+        <span id="submit-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+      </button>
+      <a href="{% url 'manage_flights' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+  {% else %}
+  <div class="alert alert-danger">No tienes permisos para {% if edit_mode %}editar{% else %}crear{% endif %} vuelos.</div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <!-- Se incluyen las librerías necesarias para funcionalidades adicionales (carga dinámica, datepicker, etc.) -->
+  
+  <!-- 🔴 IMPORTANTE: Validaciones -->
+  <script src="{% static 'js/validations.js' %}"></script>
+  
+  <script>
+    $(document).ready(function () {
+      // Cargar aeronaves al cambiar la aerolínea
+      $("#id_airline").on("change", function () {
+        var airlineId = $(this).val();
+        var aircraftSelect = $("#id_aircraft");
+        aircraftSelect.empty().append('<option value="">Cargando aeronaves...</option>');
+        if (airlineId) {
+          $.ajax({
+              url: `/api/aircrafts/${airlineId}/`,
+              type: 'GET',
+              success: function (data) {
+                aircraftSelect.empty().append('<option value="">Seleccione una aeronave</option>');
+                if (data.aircrafts.length > 0) {
+                  $.each(data.aircrafts, function (index, aircraft) {
+                    aircraftSelect.append($('<option>', {
+                      value: aircraft.id,
+                      text: aircraft.aeronave
+                    }));
+                  });
+                } else {
+                  aircraftSelect.append('<option value="">No hay aeronaves disponibles</option>');
+                }
+              },
+              error: function (xhr, status, error) {
+                console.error("Error al cargar aeronaves:", error);
+                aircraftSelect.empty().append('<option value="">Error al cargar aeronaves</option>');
+              }
+            });
+        } else {
+          aircraftSelect.empty().append('<option value="">Seleccione una aerolínea primero</option>');
+        }
+      });
+
+      // Manejo de campos de archivos adjuntos y eliminación de documentos existentes...
+      let fileCounter = 1;
+      $("#add-new-file-field").on("click", function () {
+        fileCounter++;
+        const newField = `
+            <div class="file-upload mb-2 row align-items-end">
+                <div class="col-md-5">
+                    <input type="file" name="file_${fileCounter}" class="form-control file-input required-file" data-uploaded="false">
+                </div>
+                <div class="col-md-5">
+                    <select name="file_${fileCounter}_type" class="form-select file-type required-file-type" data-file-input="file_${fileCounter}">
+                        <option value="">Tipo de archivo</option>
+                        {% for dt in document_types %}
+                            <option value="{{ dt.id }}">{{ dt.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="remove-new-file-field btn btn-sm btn-danger">Eliminar</button>
+                </div>
+            </div>
+        `;
+        $("#new-file-fields").append(newField);
+        $(".remove-new-file-field").off("click").on("click", function () {
+          $(this).closest(".file-upload").remove();
+        });
+      });
+    
+      $(".remove-existing-doc").on("click", function () {
+        const li = $(this).closest("li");
+        const docId = li.data("doc-id");
+        let current = $("#removed_documents").val() ? $("#removed_documents").val().split(",") : [];
+        if (!current.includes(String(docId))) {
+          current.push(docId);
+        }
+        $("#removed_documents").val(current.join(","));
+        li.remove();
+      });
+
+      // Validación de tipo de archivo
+      $("#flightForm").on("submit", function (e) {
+        let valid = true;
+        $(".file-input").each(function () {
+          let fileInput = $(this);
+          let fileVal = fileInput.val().trim();
+
+          // Si se ha seleccionado un archivo...
+          if (fileVal !== "") {
+            // Buscamos el select asociado
+            let typeSelect = $("[name='" + fileInput.attr("name") + "_type']");
+            
+            // Si no se seleccionó tipo de archivo
+            if (!typeSelect.val()) {
+              e.preventDefault();
+              valid = false;
+              // Mostrar el mensaje de error
+              $("#file-error-message").show();
+              fileInput.addClass("is-invalid");
+              typeSelect.addClass("is-invalid");
+            }
+          }
+        });
+
+        // Si no es válido, bloqueamos el envío
+        if (!valid) {
+          e.preventDefault();
+          return false;
+        }
+      });
+    });
+  </script>
+  
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <!-- Flatpickr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Inicializa flatpickr para todos los inputs con la clase "datepicker"
+      flatpickr('.datepicker', {
+        dateFormat: 'd/m/Y'
+      });
+    });
+  </script>
+  
+{% endblock %}

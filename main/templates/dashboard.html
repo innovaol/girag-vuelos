@@ -1,0 +1,162 @@
+<!-- /home/innovaol/girapp/main/templates/dashboard.html -->
+
+<!-- Tarjetas de estadísticas -->
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard - App Vuelos{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Dashboard</h2>
+
+  <!-- Tarjetas de estadísticas -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card text-white bg-primary mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Total de Vuelos</h5>
+          <p class="card-text" style="font-size: 2rem;">{{ total_flights }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-white bg-success mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Vuelos Hoy</h5>
+          <p class="card-text" style="font-size: 2rem;">{{ flights_today }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-white bg-info mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Vuelos Últimos 7 Días</h5>
+          <p class="card-text" style="font-size: 2rem;">{{ flights_last_7 }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráfico de Vuelos por Día -->
+  <h3>Vuelos por Día (últimos 7 días)</h3>
+  <canvas id="flightsChart" width="400" height="200"></canvas>
+
+  <hr>
+
+  <!-- Formulario de Filtrado -->
+  <h3>Filtrar Vuelos</h3>
+  <form method="GET" class="row g-3 mb-4">
+    <div class="col-auto">
+      {{ form.start_date.label_tag }}
+      {{ form.start_date }}
+    </div>
+    <div class="col-auto">
+      {{ form.end_date.label_tag }}
+      {{ form.end_date }}
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary mt-4">Filtrar</button>
+    </div>
+  </form>
+
+  <!-- Lista de Vuelos -->
+  <h3>Lista de Vuelos</h3>
+  <table id="flightsTable" class="table table-striped sortable allow-last-order">
+    <thead class="table-primary">
+      <tr>
+        <th>ID</th>
+        <th>Número de Vuelo</th>
+        <th>Fecha</th>
+        <th>Aerolínea</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for flight in flights %}
+      <tr>
+        <td>{{ flight.id }}</td>
+        <td>{{ flight.flight_number }}</td>
+        <td>{{ flight.date|date:"d/m/Y" }}</td>
+        <td>{{ flight.airline }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center">No hay vuelos disponibles.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <!-- Incluir Chart.js y DataTables -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Definir ordenamiento personalizado para fechas en formato dd/mm/yyyy (tipo "date-uk")
+      $.fn.dataTable.ext.type.order['date-uk-pre'] = function(d) {
+        if (d && d.trim() !== "") {
+          var parts = d.split('/');
+          return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
+        }
+        return 0;
+      };
+
+      // Inicializar DataTables en la tabla con id "flightsTable"
+      $("#flightsTable").DataTable({
+        ordering: true,
+        paging: true,
+        searching: true,
+        columnDefs: [
+          // La columna "Fecha" (índice 2) se ordena primero por la fecha y luego por ID (columna 0)
+          { targets: 2, orderData: [2, 0], type: "date-uk" }
+        ],
+        language: {
+          emptyTable: "No hay registros.",
+          sLengthMenu: "Mostrar _MENU_ registros",
+          sZeroRecords: "No se encontraron resultados",
+          sInfo: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+          sInfoEmpty: "No existen registros",
+          sInfoFiltered: "(filtrado de _MAX_ registros)",
+          sSearch: "Buscar:",
+          oPaginate: {
+            sFirst: "Primero",
+            sLast: "Último",
+            sNext: "Siguiente",
+            sPrevious: "Anterior"
+          }
+        }
+      });
+
+      // Crear gráfico de vuelos por día usando Chart.js
+      var ctx = document.getElementById('flightsChart').getContext('2d');
+      var flightsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: {{ chart_labels|safe }},
+          datasets: [{
+            label: 'Vuelos',
+            data: {{ chart_data|safe }},
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              precision: 0
+            }
+          }
+        }
+      });
+    });
+  </script>
+{% endblock %}

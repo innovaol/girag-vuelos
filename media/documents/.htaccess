@@ -1,0 +1,6 @@
+#/home/innovaol/girapp/media/documents/.htaccess
+
+# Bloquear acceso directo a archivos en esta carpeta
+<Files "*">
+    Require all denied
+</Files>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gestionar Tipos de Documentos{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Lista de Tipos de Documentos</h2>
+  {% if perms.main.create_document_type %}
+    <a href="{% url 'create_document_type' %}" class="btn btn-primary mb-3">Crear Tipo de Documento</a>
+  {% endif %}
+
+  <table class="table dataTable sortable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tipo de Documento</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dt in doc_types %}
+      <tr>
+        <td>{{ dt.id }}</td>
+        <td>{{ dt.name }}</td>
+        <td class="action-buttons">
+          {% if perms.main.edit_document_type %}
+            <a href="{% url 'edit_document_type' dt.id %}" data-bs-toggle="tooltip" title="Editar">
+              <i class="fas fa-pencil-alt action-icon"></i>
+            </a>
+          {% endif %}
+          {% if perms.main.delete_document_type %}
+            <a href="{% url 'delete_document_type' dt.id %}" onclick="return confirm('¿Estás seguro de eliminar este tipo de documento?');" data-bs-toggle="tooltip" title="Eliminar">
+              <i class="fas fa-trash-alt action-icon"></i>
+            </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3" class="text-center">No hay tipos de documentos registrados.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+  </script>
+{% endblock %}

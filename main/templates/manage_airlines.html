@@ -1,0 +1,58 @@
+<!-- Tarjetas de estadísticas -->
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gestionar Aerolíneas{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Lista de Aerolíneas</h2>
+  {% if perms.main.create_airline %}
+    <a href="{% url 'create_airline' %}" class="btn btn-primary mb-3">Crear Aerolínea</a>
+  {% endif %}
+  <table class="table table-striped sortable">
+    <thead class="table-primary">
+      <tr>
+        <th>ID</th>
+        <th>Aerolínea</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for airline in airlines %}
+      <tr>
+        <td>{{ airline.id }}</td>
+        <td>{{ airline.name }}</td>
+        <td class="action-buttons" style="text-align: center;">
+          {% if perms.main.edit_airline %}
+            <a href="{% url 'edit_airline' airline.id %}" class="btn-action-edit" data-bs-toggle="tooltip" title="Editar">
+              <i class="fas fa-pencil-alt action-icon"></i>
+            </a>
+          {% endif %}
+          {% if perms.main.delete_airline %}
+            <a href="{% url 'delete_airline' airline.id %}" class="btn-action-delete" onclick="return confirm('¿Estás seguro de eliminar esta aerolínea?');" data-bs-toggle="tooltip" title="Eliminar">
+              <i class="fas fa-trash-alt action-icon"></i>
+            </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3" class="text-center">No hay aerolíneas registradas.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  </script>
+{% endblock %}

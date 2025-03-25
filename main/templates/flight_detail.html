@@ -1,0 +1,267 @@
+<!-- /home/innovaol/AppVuelos/main/templates/flight_detail.html -->
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Detalle del Vuelo{% endblock %}
+
+{% block dashboard_content %}
+{% if perms.main.view_flight %}
+<div class="container">
+  <h2 class="mt-4">Detalle del Vuelo: {{ flight.flight_number }}</h2>
+
+  <!-- Tarjeta de información del vuelo -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      Información del Vuelo
+    </div>
+    <div class="card-body">
+      <p><strong>Fecha:</strong> {{ flight.date }}</p>
+      <p><strong>Aerolínea:</strong> {{ flight.airline }}</p>
+      <p>
+        <strong>Creado por:</strong>
+        {% if flight.created_by %}
+          {{ flight.created_by.username }}
+        {% else %}
+          Desconocido
+        {% endif %}
+      </p>
+      <p>
+        <strong>Estado:</strong>
+        {% if flight.status == 'pending' %}
+          <span class="badge bg-warning">Pendiente</span>
+        {% elif flight.status == 'approved' %}
+          <span class="badge bg-primary">Aprobado</span>
+        {% elif flight.status == 'billed' %}
+          <span class="badge bg-info">Facturado</span>
+        {% elif flight.status == 'completed' %}
+          <span class="badge bg-success">Completado</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ flight.get_status_display }}</span>
+        {% endif %}
+      </p>
+      <p>
+        {# Botón para revertir el vuelo a "Pendiente" solo si el estado no es pending y el usuario tiene el permiso especial #}
+        {% if perms.main.admin_vuelos and flight.status != 'pending' %}
+          <a href="{% url 'revert_flight_to_pending' flight.id %}?next={{ next_url }}" class="btn btn-warning">
+            Revertir a Pendiente
+          </a>
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Sección de documentos adjuntos -->
+  <h3 class="mt-4">Documentos Adjuntos</h3>
+
+  {% if documents.exists %}
+  <table id="documentsTable" class="table table-striped">
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th>Nombre del Archivo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doc in documents %}
+      <tr>
+        <td>{{ doc.doc_type }}</td>
+        <td>{{ doc.file.name|cut:"documents/" }}</td>
+        <td>
+          <button 
+            class="btn btn-info btn-sm preview-doc"
+            data-view-url="{% url 'view_document' doc.id %}"
+            data-file-name="{{ doc.file.name }}">
+            Vista Previa
+          </button>
+
+          <a href="{% url 'view_document' doc.id %}?download=1" class="btn btn-primary btn-sm" download>Descargar</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="alert alert-warning text-center">No hay documentos adjuntos.</div>
+  {% endif %}
+
+  <a href="{{ next_url }}" class="btn btn-secondary mt-4">Volver</a>
+</div>
+
+<!-- Modal para vista previa -->
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" style="max-width: 90%;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="documentPreviewModalLabel">Vista Previa del Documento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body p-0" style="height: calc(100vh - 180px); overflow: hidden;">
+        <iframe id="documentPreviewFrame" src="" style="display: block; margin: auto; width: 100%; height: 100%;" frameborder="0"></iframe>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-danger">No tienes permisos para ver este vuelo.</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+
+  <!-- PDF.js -->
+  <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
+
+  <!-- SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- Mammoth.js para Word -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+
+  <script>
+    $(document).ready(function () {
+      $(".preview-doc").on("click", function () {
+        const viewUrl = $(this).data("view-url");
+        const ext = $(this).data("file-name").split('.').pop().toLowerCase();
+        const iframe = $("#documentPreviewFrame");
+
+        if (ext === "pdf") {
+          // Para PDF: usamos fetch con credentials y convertimos la respuesta a Blob.
+          fetch(viewUrl, { credentials: 'include' })
+            .then(response => {
+              if (!response.ok) { 
+                throw new Error("Error en la respuesta: " + response.status);
+              }
+              return response.blob();
+            })
+            .then(blob => {
+              const blobUrl = URL.createObjectURL(blob);
+              iframe.attr("src", blobUrl);
+            })
+            .catch(error => {
+              console.error("Error al cargar PDF:", error);
+              iframe.attr("src", "");
+            });
+        } else if (["xls", "xlsx"].includes(ext)) {
+          // Para Excel: usamos fetch, convertimos la respuesta a blob, luego a arrayBuffer y procesamos con SheetJS.
+          console.log("Excel viewUrl:", viewUrl);
+          fetch(viewUrl, { credentials: 'include' })
+            .then(response => {
+              console.log("Response status:", response.status);
+              if (!response.ok) { 
+                throw new Error("Error en la respuesta: " + response.status); 
+              }
+              return response.blob();
+            })
+            .then(blob => blob.arrayBuffer())
+            .then(data => {
+              let workbook;
+              try {
+                if (ext === "xls") {
+                  let binary = "";
+                  const bytes = new Uint8Array(data);
+                  const len = bytes.byteLength;
+                  for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                  }
+                  workbook = XLSX.read(binary, { type: "binary" });
+                } else {
+                  workbook = XLSX.read(data, { type: "array" });
+                }
+              } catch (e) {
+                console.error("Error al leer Excel:", e);
+                throw e;
+              }
+              let html = "";
+              if (workbook && workbook.SheetNames && workbook.SheetNames.length > 0) {
+                workbook.SheetNames.forEach(name => {
+                  html += XLSX.utils.sheet_to_html(workbook.Sheets[name]);
+                });
+              } else {
+                html = "<p>No hay vista previa disponible.</p>";
+              }
+              const styledHtml = `
+                <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <meta charset="utf-8">
+                        <style>
+                          body { display:flex; justify-content:center; padding:16px; font-family:Arial; }
+                          table, th, td { border:1px solid #999!important; border-collapse:collapse!important; padding:8px!important; }
+                          th { background:#4CAF50!important; color:#fff!important; }
+                          tr:nth-child(even) td { background:#f9f9f9!important; }
+                          tr:hover td { background:#f1f1f1!important; }
+                        </style>
+                      </head>
+                      <body>${html}</body>
+                    </html>`;
+
+              const blobUrl = URL.createObjectURL(new Blob([styledHtml], { type:"text/html" }));
+              iframe.attr("src", blobUrl);
+            })
+            .catch(error => {
+              console.error("Error al cargar Excel:", error);
+              iframe.attr("src", "<p>No se pudo cargar la vista previa del Excel.</p>");
+            });
+        } else if (["doc", "docx"].includes(ext)) {
+          // Para Word: usamos Mammoth para convertir el arrayBuffer a HTML.
+          fetch(viewUrl, { credentials: 'include' })
+            .then(res => res.arrayBuffer())
+            .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
+            .then(result => {
+              const styledHtml = `
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <meta charset="utf-8">
+                    <style>
+                      body { background: #f0f0f0; display: flex; justify-content: center; padding: 24px; }
+                      .page { width: 794px; min-height: 1123px; background: #fff; padding: 48px; box-shadow: 0 0 16px rgba(0,0,0,0.2); border: 1px solid #ddd; font-family: Arial; line-height: 1.5; }
+                    </style>
+                  </head>
+                  <body><div class="page">${result.value}</div></body>
+                </html>`;
+              const blobUrl = URL.createObjectURL(new Blob([styledHtml], { type:"text/html" }));
+              iframe.attr("src", blobUrl);
+            });
+        } else if (ext === "txt") {
+          // Para TXT: obtenemos el texto y lo envolvemos en HTML.
+          fetch(viewUrl, { credentials: 'include' })
+            .then(res => res.text())
+            .then(text => {
+              const styledHtml = `
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <meta charset="utf-8">
+                    <style>
+                      body { background: #f0f0f0; display: flex; justify-content: center; padding: 24px; font-family: Arial, sans-serif; }
+                      .page { width: 794px; min-height: 1123px; background: #fff; padding: 48px; box-shadow: 0 0 16px rgba(0,0,0,0.2); border: 1px solid #ddd; box-sizing: border-box; white-space: pre-wrap; line-height: 1.5; }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="page">${text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>
+                  </body>
+                </html>`;
+              const blobUrl = URL.createObjectURL(new Blob([styledHtml], { type: "text/html" }));
+              iframe.attr("src", blobUrl);
+            });
+        } else {
+          // Por defecto, asignamos el URL directamente.
+          iframe.attr("src", viewUrl);
+        }
+        // Finalmente, mostramos la ventana modal.
+        $("#documentPreviewModal").modal("show");
+      });
+
+      $("#documentPreviewModal").on("hidden.bs.modal", function () {
+        $("#documentPreviewFrame").attr("src", "");
+      });
+    });
+  </script>
+{% endblock %}

@@ -1,0 +1,121 @@
+<!-- /home/innovaol/girapp/main/templates/manage_flights.html -->
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gestión de Vuelos{% endblock %}
+
+{% block dashboard_content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Gestión de Vuelos</h2>
+
+    <!-- Botón Crear Vuelo (visible solo si tiene permiso) -->
+    {% if perms.main.create_flight %}
+    <a href="{% url 'create_flight' %}" class="btn btn-primary mb-3">
+        <i class="fas fa-plus"></i> Crear Vuelo
+    </a>
+    {% endif %}
+
+    <table id="flightsTable" class="table table-striped sortable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Fecha de Creación</th>
+                <th># Vuelo</th>
+                <th>Fecha de Vuelo</th>
+                <th>Aerolínea</th>
+                <th>Documentos</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for flight in flights %}
+            <tr>
+                <td>{{ flight.id }}</td>
+                <td data-order="{{ flight.created_at|date:'Ymd' }}-{{ flight.id|stringformat:"04d" }}">
+                  {{ flight.created_at|date:"d/m/Y" }}
+                </td>
+                <td>{{ flight.flight_number|default:"N/A" }}</td>
+                <td data-order="{% if flight.date %}{{ flight.date|date:'Ymd' }}{% else %}00000000{% endif %}">
+                  {{ flight.date|date:"d/m/Y"|default:"N/A" }}
+                </td>
+                <td>{{ flight.airline }}</td>
+                <td>
+                    {% with flight.documents.count as doc_count %}
+                        {% if doc_count > 0 %}
+                            {{ doc_count }} documento{% if doc_count > 1 %}s{% endif %}
+                        {% else %}
+                            <span class="text-muted">Sin documentos</span>
+                        {% endif %}
+                    {% endwith %}
+                </td>
+                <td>
+                  {% if flight.status == 'pending' %}
+                    <span class="badge bg-warning">Pendiente</span>
+                  {% elif flight.status == 'approved' %}
+                    <span class="badge bg-primary">Aprobado</span>
+                  {% elif flight.status == 'billed' %}
+                    <span class="badge bg-info">Facturado</span>
+                  {% elif flight.status == 'completed' %}
+                    <span class="badge bg-success">Completado</span>
+                  {% elif flight.status == 'cancelled' %}
+                    <span class="badge bg-danger">Cancelado</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ flight.get_status_display }}</span>
+                  {% endif %}
+                </td>
+                <td class="action-buttons">
+                  {% if perms.main.view_flight %}
+                    <a href="{% url 'view_flight' flight.id %}" class="btn-action-view" data-bs-toggle="tooltip" title="Ver">
+                      <i class="fas fa-eye action-icon"></i>
+                    </a>
+                  {% endif %}
+                
+                  {% if perms.main.edit_flight %}
+                    {% if flight.status == 'pending' %}
+                      <a href="{% url 'edit_flight' flight.id %}" class="btn-action-edit" data-bs-toggle="tooltip" title="Editar">
+                        <i class="fas fa-pencil-alt action-icon"></i>
+                      </a>
+                    {% else %}
+                      <a class="btn-action-edit disabled" data-bs-toggle="tooltip" title="No editable">
+                        <i class="fas fa-pencil-alt action-icon"></i>
+                      </a>
+                    {% endif %}
+                  {% endif %}
+                
+                  {% if perms.main.delete_flight %}
+                    {% if flight.status == 'pending' %}
+                      <a href="{% url 'delete_flight' flight.id %}" class="btn-action-delete" onclick="return confirm('¿Eliminar vuelo?');" data-bs-toggle="tooltip" title="Eliminar">
+                        <i class="fas fa-trash-alt action-icon"></i>
+                      </a>
+                    {% else %}
+                      <a class="btn-action-delete disabled" data-bs-toggle="tooltip" title="No eliminable">
+                        <i class="fas fa-trash-alt action-icon"></i>
+                      </a>
+                    {% endif %}
+                  {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center">No hay vuelos registrados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script>
+    // Activar Tooltips
+    document.addEventListener('DOMContentLoaded', function () {
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+    });
+  </script>
+{% endblock %}

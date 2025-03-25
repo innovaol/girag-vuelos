@@ -1,0 +1,63 @@
+<!-- /home/innovaol/girapp/main/templates/manage_aircrafts.html -->
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gestión de Aeronaves{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Lista de Aeronaves</h2>
+
+  {% if perms.main.create_aircraft %}
+    <a href="{% url 'create_aircraft' %}" class="btn btn-primary mb-3">Crear Aeronave</a>
+  {% endif %}
+
+  <table class="table table-striped sortable">
+    <thead class="table-primary">
+      <tr>
+        <th>ID</th>
+        <th>Aeronave</th> <!-- Cambiado de "Número de Aeronave" a "Aeronave" -->
+        <th>Aerolínea</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for aircraft in aircrafts %}
+      <tr>
+        <td>{{ aircraft.id }}</td>
+        <td>{{ aircraft.aeronave }}</td> <!-- Cambiado de "numero_aeronave" a "aeronave" -->
+        <td>{{ aircraft.aerolinea.name }}</td>
+        <td class="action-buttons">
+          {% if perms.main.edit_aircraft %}
+            <a href="{% url 'edit_aircraft' aircraft.id %}" class="btn-action-edit" data-bs-toggle="tooltip" title="Editar">
+              <i class="fas fa-pencil-alt action-icon"></i>
+            </a>
+          {% endif %}
+          
+          {% if perms.main.delete_aircraft %}
+            <a href="{% url 'delete_aircraft' aircraft.id %}" class="btn-action-delete" onclick="return confirm('¿Estás seguro de eliminar esta aeronave?');" data-bs-toggle="tooltip" title="Eliminar">
+              <i class="fas fa-trash-alt action-icon"></i>
+            </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center">No hay aeronaves registradas.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  </script>
+{% endblock %}

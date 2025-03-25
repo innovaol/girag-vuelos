@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}
+  {{ title }}
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">{{ title }}</h2>
+
+  <form id="airlineForm" method="POST" class="row g-3" novalidate>
+    {% csrf_token %}
+
+    <div class="col-md-6">
+      <label for="{{ form.name.id_for_label }}" class="form-label">Nombre de la aerolínea</label>
+      {{ form.name|add_class:"form-control" |attr:"placeholder:Ingrese el nombre de la aerolínea" }}
+      <div class="invalid-feedback" style="display: none;">El nombre de la aerolínea es obligatorio.</div>
+    </div>
+
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a href="{% url 'manage_airlines' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script src="{% static 'js/validations.js' %}"></script>
+{% endblock %}

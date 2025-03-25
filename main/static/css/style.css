@@ -1,0 +1,400 @@
+/* ---------------- /home/innovaol/girapp/main/static/css/style.css ---------------- */
+/* --------------------------------- Global Styles --------------------------------- */
+
+table {
+  table-layout: auto !important;
+}
+
+table.dataTable tbody tr,
+table.dataTable tbody tr td {
+  height: auto !important;
+  line-height: 1.2 !important;
+  font-size: 0.85rem;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 4px 6px !important;
+}
+
+/* Hace que el cursor indique que el campo de fecha es interactivo */
+input[type="date"] {
+  cursor: pointer;
+}
+
+/* 🎨 Hover en TODA la fila */
+table.dataTable tbody tr:hover td {
+  background-color: #f0f8ff !important;
+}
+
+/* 🎯 Asegura que los botones no anulen el hover */
+table.dataTable tbody tr:hover td .action-buttons a {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Ocultar la primera columna (ID) de todas las tablas 
+table th:nth-child(1),
+table td:nth-child(1) {
+  display: none !important;
+}*/
+
+/* Sidebar */
+.sidebar {
+  background-color: #212878;
+  color: white;
+  width: 250px;
+  height: 100vh;
+  position: fixed;
+  padding: 0.5rem 0;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.3);
+  border-radius: 3px;
+}
+
+.sidebar-logo {
+  max-width: 150px;
+  margin: 15px auto;
+  text-align: center;
+  background-color: #fff;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.sidebar-logo img { max-width: 110px; height: auto; display: inline-block; }
+.sidebar-brand { text-align: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 0.8rem; color: white; }
+.sidebar ul { list-style: none; padding: 0; margin: 0 auto; width: 220px; text-align: left; }
+.sidebar li { margin-bottom: 0.´1rem; }
+.sidebar a {
+  color: #bdbdbd;
+  text-decoration: none;
+  display: block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+.sidebar a:hover, .sidebar a.active { background-color: #495057; color: white; }
+.sidebar .submenu { padding-left: 15px; margin-top: 0.1rem; }
+
+.content {
+  margin-left: 250px;
+  padding: 2rem;
+  position: relative;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.content-inner { max-width: 1200px; margin: 0 auto; }
+
+#flash-messages {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  z-index: 1050;
+}
+
+/* ------------------ DataTables Global Styles ------------------ */
+table.dataTable thead th {
+  background-color: #007bff;
+  color: #fff;
+  text-align: center;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  position: relative;
+  cursor: pointer;
+}
+
+/* Flechas de ordenación en DataTables */
+table.dataTable thead th.sorting::after {
+  content: '\f0dc'; /* fa-sort */
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #e0e0e0;
+}
+
+table.dataTable thead th.sorting_asc::after {
+  content: '\f0de'; /* fa-sort-up */
+  color: #e0e0e0;
+}
+
+table.dataTable thead th.sorting_desc::after {
+  content: '\f0dd'; /* fa-sort-down */
+  color: #e0e0e0;
+}
+
+/* ✅ Color de selección mejorado */
+table.dataTable tbody tr.selected td {
+  background-color: #d1e7dd !important;
+}
+
+/* Alternar color de filas */
+table.dataTable tbody tr:nth-child(odd) td {
+  background-color: #f9f9f9;
+}
+
+table.dataTable tbody tr:nth-child(even) td {
+  background-color: #ffffff;
+}
+
+/* Eliminación de la columna ID 
+table.dataTable th:nth-child(1),
+table.dataTable td:nth-child(1) {
+  display: none !important;
+}*/
+
+/* Búsqueda y Selector de Cantidad */
+.dataTables_wrapper .dataTables_filter label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-right: 15px;
+}
+
+.dataTables_wrapper .dataTables_filter label input {
+  margin-left: 0.5rem;
+  width: 200px;
+}
+
+.dataTables_wrapper .dataTables_length label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+  margin-bottom: 15px;
+}
+
+/* Paginación */
+.dataTables_paginate {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
+
+.dataTables_paginate a {
+  padding: 5px 10px;
+  border: 1px solid #dee2e6;
+  color: #495057;
+  text-decoration: none;
+  border-radius: 3px;
+}
+
+.dataTables_paginate a.current {
+  background-color: #0d6efd;
+  color: #fff;
+  border-color: #0d6efd;
+}
+
+.dataTables_paginate a:hover {
+  background-color: #e9ecef;
+}
+
+/* ------------------ Acciones Globalizadas ------------------ */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+
+td.action-buttons {
+  /* display: table-cell !important; */
+  vertical-align: middle !important;
+  height: auto !important;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* 📏 Ajuste de columna de acciones */
+.dataTables_wrapper td.action-buttons {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Información de paginación */
+.dataTables_info {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+/* Mensaje cuando no hay datos */
+.no-data-message {
+  font-weight: bold;
+  color: #dc3545;
+  margin-top: 1rem;
+}
+
+/* Ajuste de Modal */
+.modal-dialog {
+  max-width: 500px;
+  margin: 1.75rem auto;
+}
+
+/* ---------------- Login Styles ---------------- */
+body {
+  background-color: #f8f9fa;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 5% auto;
+}
+
+.login-card {
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.login-logo {
+  display: block;
+  margin: 0 auto 15px auto;
+  max-width: 120px;
+}
+
+.login-card .card-body {
+  padding: 2rem;
+}
+
+/* Centrar el contenido del login */
+.d-flex.justify-content-center.align-items-center {
+  min-height: 100vh;
+}
+
+/* ---------------- LOGIN ERROR TOAST ---------------- */
+.error-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #dc3545;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1050;
+  display: none;
+  font-size: 0.9rem;
+}
+
+.error-toast.show {
+  display: block;
+  animation: fadeInOut 4s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translate(-50%, -20px); }
+  10%, 90% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -20px); }
+}
+
+/* ✅ Estilos para las tablas Excel renderizadas */
+.excel-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.excel-table th, .excel-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+.excel-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+
+
+
+/* ======= Estilos unificados definitivos para botones de acción ======= */
+
+/* Celda de acciones (perfectamente centrada) */
+table.dataTable td.action-buttons {
+  display: table-cell;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  padding: 0.5rem 0.25rem;
+}
+
+/* Eliminar subrayado a todos los íconos de acción */
+.action-buttons a,
+.action-buttons .icon-link {
+  text-decoration: none !important;
+}
+
+/* Contenedor flex interno para iconos */
+table.dataTable td.action-buttons .action-buttons-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Estilos generales de enlaces con íconos */
+table.dataTable td.action-buttons .icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #0d6efd;
+}
+
+/* Tamaño de los íconos de acción 
+table.dataTable td.action-buttons .icon-link .action-icon {
+  font-size: 2.5rem; <-- Ajusta aquí el tamaño deseado 
+} */
+
+/* Ajustar tamaño de todos los íconos de acción directamente */
+.action-buttons .action-icon {
+  font-size: 1.1rem !important; /* ajusta aquí el tamaño deseado */
+}
+
+/* Enlaces deshabilitados (habilitados solo para tooltip) */
+table.dataTable td.action-buttons .icon-link.disabled,
+table.dataTable td.action-buttons .btn-action-edit.disabled,
+table.dataTable td.action-buttons .btn-action-delete.disabled {
+  pointer-events: auto !important;
+  cursor: default !important;
+  color: #6c757d !important;
+  opacity: 0.6;
+}
+
+/* Ícono interno deshabilitado */
+table.dataTable td.action-buttons .icon-link.disabled .action-icon,
+table.dataTable td.action-buttons .btn-action-edit.disabled .action-icon,
+table.dataTable td.action-buttons .btn-action-delete.disabled .action-icon {
+  pointer-events: none !important;
+  color: inherit !important;
+}
+
+/* Alternado de filas (estandarizado para todas las tablas) */
+table.dataTable tbody tr:nth-child(odd) {
+  background-color: #f9f9f9 !important;
+}
+
+table.dataTable tbody tr:nth-child(even) {
+  background-color: #ffffff !important;
+}
+
+
+/* ------------------ Fin de Global Styles ------------------ */

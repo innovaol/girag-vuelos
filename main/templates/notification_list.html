@@ -1,0 +1,133 @@
+<!-- /home/innovaol/girapp/main/templates/notification_list.html -->
+
+{% extends "base.html" %}
+{% block title %}Notificaciones{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Notificaciones de Vuelos</h2>
+
+  <!-- Tabla de Vuelos Pendientes de Aprobación (solo para supervisores) -->
+  {% if user.is_flight_supervisor %}
+  <div class="mb-4" id="pending-approval-section">
+    <h4>Vuelos Pendientes de Aprobación</h4>
+    <table id="pendingApprovalTable" class="table table-striped sortable">
+      <thead class="table-primary">
+        <tr>
+          <th>ID</th>
+          <th>Número de Vuelo</th>
+          <th>Aerolínea</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for flight in pending_approval %}
+        <tr>
+          <td>{{ flight.id }}</td>
+          <td>{{ flight.flight_number }}</td>
+          <td>{{ flight.airline }}</td>
+          <td data-order="{{ flight.date|date:'Ymd'|add:flight.id }}">
+            {{ flight.date|date:"d/m/Y" }}
+          </td>
+          <td><span class="badge bg-warning">Por Aprobar</span></td>
+          <td class="action-buttons">
+            <div class="action-buttons-inner">
+              <a href="{% url 'view_flight' flight.id %}?next=notification_view" class="icon-link" data-bs-toggle="tooltip" title="Ver Detalles">
+                <i class="fas fa-eye action-icon"></i>
+              </a>
+              <a href="{% url 'approve_flight' flight.id %}" class="icon-link" data-bs-toggle="tooltip" title="Aprobar" onclick="return confirm('¿Está seguro de aprobar este vuelo?');">
+                <i class="fas fa-check action-icon"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">
+            No hay vuelos pendientes de aprobación.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Tabla de Vuelos Pendientes de Facturación (para supervisores y facturadores) -->
+  {% if user.is_flight_supervisor or user.is_billing_supervisor %}
+  <div class="mb-4" id="approved-section">
+    <h4>Vuelos Pendientes de Facturación</h4>
+    <table id="pendingBillingTable" class="table table-striped sortable">
+      <thead class="table-primary">
+        <tr>
+          <th>ID</th>
+          <th>Número de Vuelo</th>
+          <th>Aerolínea</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for flight in pending_billing %}
+        <tr>
+          <td>{{ flight.id }}</td>
+          <td>{{ flight.flight_number }}</td>
+          <td>{{ flight.airline }}</td>
+          <td data-order="{{ flight.date|date:'Ymd'|add:flight.id }}">
+            {{ flight.date|date:"d/m/Y" }}
+          </td>
+          <td><span class="badge bg-primary">Por Facturar</span></td>
+          <td class="action-buttons">
+            <div class="action-buttons-inner">
+              <a href="{% url 'view_flight' flight.id %}?next=notification_view" class="icon-link" data-bs-toggle="tooltip" title="Ver Detalles">
+                <i class="fas fa-eye action-icon"></i>
+              </a>
+              {% if user.is_billing_supervisor %}
+              <a href="{% url 'mark_as_billed' flight.id %}" class="icon-link" data-bs-toggle="tooltip" title="Marcar como Facturado" onclick="return confirm('¿Está seguro de marcar este vuelo como facturado?');">
+                <i class="fas fa-file-invoice-dollar action-icon"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">
+            No hay vuelos pendientes de facturación.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if not user.is_flight_supervisor and not user.is_billing_supervisor %}
+    <div class="alert alert-info text-center">No hay notificaciones de vuelos pendientes.</div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+
+      const params = new URLSearchParams(window.location.search);
+      const section = params.get('section');
+      if (section) {
+        const targetId = section === "approved" ? "approved-section" :
+                         section === "pending" ? "pending-approval-section" : "";
+        if (targetId) {
+          const el = document.getElementById(targetId);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+    });
+  </script>
+{% endblock %}
