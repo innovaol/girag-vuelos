@@ -1,0 +1,16 @@
+# Django / Python
+*.sqlite3
+*.json
+
+# Byte‑code
+__pycache__/
+*.pyc
+
+# Entorno local
+.env
+
+# Archivos temporales
+tmp/
+logs/
+staticfiles/
+
