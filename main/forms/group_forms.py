@@ -1,7 +1,13 @@
 from django import forms
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 
 class GroupForm(forms.ModelForm):
+    permissions = forms.ModelMultipleChoiceField(
+        queryset=Permission.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False
+    )
+
     class Meta:
         model = Group
         fields = ['name', 'permissions']
@@ -9,38 +15,33 @@ class GroupForm(forms.ModelForm):
             'name': 'Nombre',
             'permissions': 'Permisos'
         }
-        widgets = {
-            'name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Ingrese el nombre del grupo'
-            }),
-            'permissions': forms.CheckboxSelectMultiple(),
-        }
 
     def __init__(self, *args, **kwargs):
         super(GroupForm, self).__init__(*args, **kwargs)
         grouped = {}
-        # Itera sobre cada checkbox del campo permissions
-        for bound in self['permissions']:
-            # Si el label contiene "|" se usa la parte anterior a la primera barra para agrupar,
-            # y se elimina de la visualización
-            if "|" in bound.choice_label:
-                prefix, rest = bound.choice_label.split("|", 1)
-                group_key = prefix.strip().lower()  # clave de agrupación (por ejemplo, "admin" o "auth")
-                label = rest.strip()  # se quita el prefijo
-            else:
-                try:
-                    perm_obj = self.fields['permissions'].queryset.get(pk=bound.choice_value)
-                    group_key = perm_obj.content_type.app_label.lower()
-                except Exception:
-                    group_key = "otros"
-                label = bound.choice_label
-            grouped.setdefault(group_key, []).append((bound, label))
-        self.grouped_permissions = grouped
 
-        # Para cada grupo con 10 o más elementos, se guarda una versión dividida en dos columnas
-        self.split_grouped_permissions = {}
-        for key, items in grouped.items():
-            if len(items) >= 10:
-                half = (len(items) + 1) // 2
-                self.split_grouped_permissions[key] = (items[:half], items[half:])
+        # Cargar permisos existentes y marcarlos si están asignados
+        selected_permissions = self.instance.permissions.all() if self.instance.pk else []
+
+        for perm in self.fields['permissions'].queryset:
+            # Solo mostramos el nombre del modelo (sin el app_label)
+            model_name = perm.content_type.model.capitalize()
+
+            if model_name not in grouped:
+                grouped[model_name] = {'view': None, 'create': None, 'edit': None, 'delete': None}
+
+            perm_data = {
+                'id': perm.id,
+                'selected': perm in selected_permissions
+            }
+
+            if 'view' in perm.codename:
+                grouped[model_name]['view'] = perm_data
+            elif 'add' in perm.codename:
+                grouped[model_name]['create'] = perm_data
+            elif 'change' in perm.codename:
+                grouped[model_name]['edit'] = perm_data
+            elif 'delete' in perm.codename:
+                grouped[model_name]['delete'] = perm_data
+
+        self.grouped_permissions = grouped

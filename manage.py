@@ -2,6 +2,8 @@
 import os
 import sys
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "main")))
+
 def main():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'girag_app.settings')
     try:

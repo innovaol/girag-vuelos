@@ -1,22 +1,33 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
+# /home/innovaol/AppVuelos/main/views/flight_views.py
+
+import os
 from datetime import date, timedelta
+import json
+import re
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib import messages
+from django.http import JsonResponse
 from django.db.models import Count
 from django.db.models.functions import TruncDay
-from django.utils.dateformat import format  # Import para formatear fechas
+from django.utils.dateformat import format
+from django.urls import reverse
 
 from main.models.flight import Flight
 from main.models.document import Document
 from main.models.document_type import DocumentType
+from main.models.aircraft import Aircraft  # Importa el modelo de aeronaves
 from main.forms.flight_forms import FlightForm, FlightReportForm
-from main.utils.audit import log_action  # Función de auditoría
+from main.utils.audit import log_action
+
+from django.core.exceptions import PermissionDenied
+
 
 @login_required
 def dashboard(request):
     """
     Vista del dashboard: muestra vuelos filtrados por fechas y estadísticas basadas en la fecha del vuelo.
-    El gráfico muestra la cantidad de vuelos ocurridos en los últimos 7 días.
     """
     form = FlightReportForm(request.GET or None)
     flights = Flight.objects.all()
@@ -42,7 +53,7 @@ def dashboard(request):
         .order_by('day')
     )
 
-    chart_labels = [format(entry['day'], "d/m/Y") for entry in flights_by_day]  # Formateo de fecha
+    chart_labels = [format(entry['day'], "d/m/Y") for entry in flights_by_day]
     chart_data = [entry['count'] for entry in flights_by_day]
 
     context = {
@@ -54,118 +65,102 @@ def dashboard(request):
         'chart_labels': chart_labels,
         'chart_data': chart_data,
     }
-    return render(request, 'main/dashboard.html', context)
+    return render(request, 'dashboard.html', context)
 
-@login_required
+
+@permission_required('main.view_flight', raise_exception=True)
 def manage_flights(request):
     """
     Vista para listar y gestionar vuelos.
     """
-    flights = Flight.objects.all().order_by('date')
-    
-    # Formatear las fechas antes de enviarlas a la plantilla
-    for flight in flights:
-        flight.date = format(flight.date, "d/m/Y")
+    flights = Flight.objects.all().order_by('-date')
+    if not flights.exists():
+        messages.info(request, "No hay vuelos registrados.")
+    return render(request, 'manage_flights.html', {'flights': flights})
 
-    return render(request, 'main/manage_flights.html', {'flights': flights})
-
-@login_required
-def create_flight(request):
+@permission_required('main.create_flight', raise_exception=True)
+@permission_required('main.edit_flight', raise_exception=True)
+def flight_form(request, flight_id=None):
     """
-    Vista para crear un vuelo y procesar la subida de documentos.
+    Vista unificada para crear y editar vuelos.
+    - Si flight_id es None, se crea un nuevo vuelo.
+    - Si tiene valor, se edita el vuelo correspondiente.
     """
-    if request.method == 'POST':
-        form = FlightForm(request.POST)
-        if form.is_valid():
-            flight = form.save(commit=False)
-            flight.created_by = request.user
-            flight.save()
-
-            # Procesar archivos subidos
-            for key in request.FILES:
-                if key.startswith('file_'):
-                    file_uploaded = request.FILES[key]
-                    doc_type_id = request.POST.get(f"{key}_type")
-                    if not doc_type_id:
-                        messages.error(request, "Debe seleccionar un tipo de documento para cada archivo subido.")
-                        flight.delete()  # Borrar vuelo en caso de error
-                        return render(request, 'main/flight_create.html', {
-                            'form': form,
-                            'document_types': DocumentType.objects.all()
-                        })
-                    try:
-                        doc_type = DocumentType.objects.get(pk=doc_type_id)
-                    except DocumentType.DoesNotExist:
-                        messages.error(request, "Tipo de documento inválido.")
-                        flight.delete()
-                        return render(request, 'main/flight_create.html', {
-                            'form': form,
-                            'document_types': DocumentType.objects.all()
-                        })
-                    Document.objects.create(
-                        flight=flight,
-                        file=file_uploaded,
-                        doc_type=doc_type.name
-                    )
-
-            messages.success(request, '¡Vuelo creado y documentos subidos!')
-            log_action(request.user, "Creó un vuelo", f"Vuelo {flight.flight_number} creado.")
-            return redirect('manage_flights')
-
+    if flight_id:
+        flight = get_object_or_404(Flight, pk=flight_id)
+        if flight.status != 'pending':  # ← ADDED
+            raise PermissionDenied("Solo los vuelos en estado Pendiente pueden editarse.")  # ← ADDED
+        title = "Editar Vuelo"
+        edit_mode = True
+        documents = flight.documents.all()
     else:
-        form = FlightForm()
+        flight = None
+        title = "Crear Vuelo"
+        edit_mode = False
+        documents = None
 
-    return render(request, 'main/flight_create.html', {
-        'form': form,
-        'document_types': DocumentType.objects.all()
-    })
-
-@login_required
-def edit_flight(request, flight_id):
-    """
-    Vista para editar un vuelo existente.
-    """
-    flight = get_object_or_404(Flight, pk=flight_id)
-    documents = flight.documents.all()
-    
     if request.method == 'POST':
         form = FlightForm(request.POST, instance=flight)
         if form.is_valid():
-            form.save()
+            flight = form.save(commit=False)
+            if not flight_id:
+                flight.created_by = request.user
+                flight.created_at = date.today()
+            flight.save()
 
-            # Procesar documentos marcados para eliminación
+            if not flight_id:
+                from main.views.notification_views import send_approval_email
+                send_approval_email(flight)
+
+            allowed_extensions = ['.txt', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.gif']
             removed_docs = request.POST.get('removed_documents', '')
             if removed_docs:
                 doc_ids = [int(doc_id) for doc_id in removed_docs.split(',') if doc_id.isdigit()]
                 for doc_id in doc_ids:
                     try:
-                        doc = flight.documents.get(pk=doc_id)
-                        doc.delete()
+                        flight.documents.get(pk=doc_id).delete()
                     except Document.DoesNotExist:
                         pass
 
-            # Procesar nuevos archivos subidos
             for key in request.FILES:
                 if key.startswith('file_'):
                     file_uploaded = request.FILES[key]
+                    ext = os.path.splitext(file_uploaded.name)[1].lower()
+                    if ext not in allowed_extensions:
+                        messages.error(request, "Solo se permiten archivos de tipo: txt, excel, word y pdf.")
+                        if not flight_id:
+                            flight.delete()
+                        return render(request, 'flight_form.html', {
+                            'form': form,
+                            'document_types': DocumentType.objects.all(),
+                            'edit_mode': edit_mode,
+                            'flight': flight,
+                            'documents': documents
+                        })
                     doc_type_id = request.POST.get(f"{key}_type")
                     if not doc_type_id:
                         messages.error(request, "Debe seleccionar un tipo de documento para cada archivo subido.")
-                        return render(request, 'main/flight_edit.html', {
+                        if not flight_id:
+                            flight.delete()
+                        return render(request, 'flight_form.html', {
                             'form': form,
+                            'document_types': DocumentType.objects.all(),
+                            'edit_mode': edit_mode,
                             'flight': flight,
-                            'documents': flight.documents.all(),
-                            'document_types': DocumentType.objects.all()
+                            'documents': documents
                         })
                     try:
                         doc_type = DocumentType.objects.get(pk=doc_type_id)
                     except DocumentType.DoesNotExist:
                         messages.error(request, "Tipo de documento inválido.")
-                        return render(request, 'main/flight_edit.html', {
+                        if not flight_id:
+                            flight.delete()
+                        return render(request, 'flight_form.html', {
                             'form': form,
+                            'document_types': DocumentType.objects.all(),
+                            'edit_mode': edit_mode,
                             'flight': flight,
-                            'documents': flight.documents.all(),
-                            'document_types': DocumentType.objects.all()
+                            'documents': documents
                         })
                     Document.objects.create(
                         flight=flight,
@@ -173,41 +168,97 @@ def edit_flight(request, flight_id):
                         doc_type=doc_type.name
                     )
 
-            messages.success(request, "Vuelo actualizado correctamente.")
-            log_action(request.user, "Editó un vuelo", f"Vuelo {flight.flight_number} editado.")
-            return redirect('manage_flights')
+            if flight_id:
+                messages.success(request, "Vuelo actualizado correctamente.")
+                log_action(request.user, "Editó un vuelo", f"Vuelo {flight.flight_number} editado.")
+            else:
+                messages.success(request, "¡Vuelo creado y documentos subidos!")
+                log_action(request.user, "Creó un vuelo", f"Vuelo {flight.flight_number} creado.")
 
+            return redirect('manage_flights')
     else:
         form = FlightForm(instance=flight)
 
-    return render(request, 'main/flight_edit.html', {
+    return render(request, 'flight_form.html', {
         'form': form,
+        'document_types': DocumentType.objects.all(),
+        'edit_mode': edit_mode,
         'flight': flight,
-        'documents': documents,
-        'document_types': DocumentType.objects.all()
+        'documents': documents
     })
 
-@login_required
+@permission_required('main.delete_flight', raise_exception=True)
 def delete_flight(request, flight_id):
     """
     Vista para eliminar un vuelo.
+    Solo permite eliminar vuelos en estado 'pending'.
     """
     flight = get_object_or_404(Flight, pk=flight_id)
+
+    if flight.status != 'pending':
+        messages.error(request, "Solo se pueden eliminar vuelos en estado pendiente.")
+        return redirect('manage_flights')
+
     flight_number = flight.flight_number
     flight.delete()
-    messages.success(request, "Vuelo eliminado correctamente.")
+    messages.success(request, f"Vuelo {flight_number} eliminado correctamente.")
     log_action(request.user, "Eliminó un vuelo", f"Vuelo {flight_number} eliminado.")
+
     return redirect('manage_flights')
 
-@login_required
+@permission_required('main.view_flight', raise_exception=True)
 def flight_detail(request, flight_id):
-    """
-    Vista de detalle de un vuelo.
-    """
+    # DEBUG: confirma que la vista se está llamando
+    print(f"DEBUG flight_detail called with id={flight_id}")
+
     flight = get_object_or_404(Flight, pk=flight_id)
     documents = flight.documents.all()
-    
-    # Formatear la fecha antes de enviarla a la plantilla
     flight.date = format(flight.date, "d/m/Y")
 
-    return render(request, 'main/flight_detail.html', {'flight': flight, 'documents': documents})
+    prev_url = request.META.get('HTTP_REFERER', '')
+    next_url = prev_url if 'notification' in prev_url else reverse('manage_flights')
+
+    context = {
+        'flight': flight,
+        'documents': documents,
+        'next_url': next_url,
+    }
+    return render(request, 'flight_detail.html', context)
+
+
+def check_flight_number(request):
+    """Valida si el número de vuelo ya existe en la base de datos."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+            flight_number = data.get("flight_number", "").strip()
+            if not flight_number:
+                return JsonResponse({"valid": False, "error": "El número de vuelo no puede estar vacío."})
+            if Flight.objects.filter(flight_number__iexact=flight_number).exists():
+                return JsonResponse({"valid": False, "error": "El número de vuelo ya existe"})
+            return JsonResponse({"valid": True, "success": "✔ Número de vuelo disponible."})
+        except json.JSONDecodeError as e:
+            return JsonResponse({"valid": False, "error": f"⚠️ Error: {str(e)}"}, status=400)
+    return JsonResponse({"valid": False, "error": "⚠️ Método no permitido."}, status=405)
+
+
+@permission_required('main.admin_vuelos', raise_exception=True)
+def revert_flight_to_pending(request, flight_id):
+    flight = get_object_or_404(Flight, pk=flight_id)
+    if flight.status == 'pending':
+        messages.info(request, "El vuelo ya se encuentra en estado pendiente.")
+    else:
+        flight.status = 'pending'
+        flight.save()
+        log_action(request.user, "Revirtió vuelo a pendiente", f"Vuelo {flight.flight_number} revertido a pendiente.")
+        messages.success(request, f"El vuelo {flight.flight_number} ha sido revertido a estado pendiente.")
+    
+    # Redirigir a la URL desde la que vino, si existe, o a 'manage_flights'
+    next_url = request.GET.get('next') or request.META.get('HTTP_REFERER')
+    if next_url:
+        return redirect(next_url)
+    return redirect('manage_flights')
+
+
+
+

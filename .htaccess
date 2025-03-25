@@ -1,7 +1,14 @@
-<IfModule mod_alias.c>
-    Alias /static/ /home/innovaol/AppVuelos/staticfiles/
-</IfModule>
+# /home/innovaol/girapp/.htaccess
 
-<Directory /home/innovaol/AppVuelos/staticfiles/>
-    Require all granted
-</Directory>
+# Habilitar Passenger para la aplicación Django (por si se usa directamente)
+PassengerEnabled on
+PassengerAppRoot /home/innovaol/girapp
+PassengerPython /home/innovaol/virtualenv/girapp/3.9/bin/python
+PassengerAppLogFile /home/innovaol/girapp/logs/passenger.log
+
+# Forzar UTF-8 para todos los archivos servidos
+AddDefaultCharset UTF-8
+
+<IfModule mod_headers.c>
+  Header set Content-Type "text/html; charset=UTF-8"
+</IfModule>

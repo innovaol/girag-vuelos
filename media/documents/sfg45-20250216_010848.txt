@@ -1,7 +1,0 @@
-¡Buen día! Por el momento me encuentro fuera de oficina , para temas de bloqueo de base de datos o problemas generales favor de levantar un ticket en el siguiente link: https://www.odoo.com/es_ES/help o contactar a Néstor García al correo neg@odoo.com ¡Gracias!
-Good day! I am currently out of the office, for database blocking issues or general issues please submit a ticket at the following link https://www.odoo.com/es_ES/help or contact Nestor Garcia at neg@odoo.com .Thank you!
-
-
--2 mil 24
-
-24.Apellido
