@@ -1,16 +1,30 @@
-# Django / Python
+# Python byte‑code
+__pycache__/
+*.py[cod]
+
+# SQLite y fixtures JSON
 *.sqlite3
 *.json
 
-# Byte‑code
-__pycache__/
-*.pyc
+# Entorno virtual y ejecutables
+bin/
+pyvenv.cfg
 
-# Entorno local
-.env
-
-# Archivos temporales
-tmp/
+# Archivos temporales y logs
 logs/
+tmp/
+*.log
+
+# Media uploads (archivos de usuario)
+media/
+
+# Static compilado
 staticfiles/
 
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+
+# Configuración sensible
+.env
