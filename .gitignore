@@ -1,8 +1,8 @@
-# Python byte‑code
+# Byte-code de Python
 __pycache__/
 *.py[cod]
 
-# SQLite y fixtures JSON
+# Bases de datos y fixtures
 *.sqlite3
 *.json
 
@@ -15,13 +15,13 @@ logs/
 tmp/
 *.log
 
-# Media uploads (archivos de usuario)
+# Archivos de usuario (media uploads)
 media/
 
-# Static compilado
+# Archivos estáticos generados (si usas collectstatic)
 staticfiles/
 
-# IDE/editor
+# Carpetas de IDE/editors
 .vscode/
 .idea/
 *.swp
