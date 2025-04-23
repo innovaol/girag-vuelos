@@ -7,3 +7,6 @@ class NavigationSection(models.Model):
 
     def __str__(self):
         return self.display_name
+        
+    class Meta:
+        default_permissions = ()  # 🔒 Desactiva los permisos automáticos de Django

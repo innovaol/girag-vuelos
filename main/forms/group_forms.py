@@ -1,5 +1,8 @@
+# /home/innovaol/girapp/main/forms/group_forms.py
+
 from django import forms
-from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.models import Permission
+from main.models.custom_group import CustomGroup
 
 class GroupForm(forms.ModelForm):
     permissions = forms.ModelMultipleChoiceField(
@@ -9,7 +12,7 @@ class GroupForm(forms.ModelForm):
     )
 
     class Meta:
-        model = Group
+        model = CustomGroup
         fields = ['name', 'permissions']
         labels = {
             'name': 'Nombre',

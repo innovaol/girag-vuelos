@@ -51,7 +51,7 @@
           <div class="sidebar-brand">Registro de Vuelos</div>
     
           <ul>
-            {% if perms.auth.access_dashboard %}
+            {% if perms.main.access_dashboard %}
               <li>
                 <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                   <i class="fas fa-tachometer-alt"></i> Dashboard
@@ -102,13 +102,13 @@
               </li>
             {% endif %}
     
-            {% if perms.auth.view_user or perms.auth.create_user or perms.auth.edit_user or perms.auth.delete_user or perms.auth.change_password or perms.auth.view_group or perms.auth.create_group or perms.auth.edit_group or perms.auth.delete_group or perms.main.view_documenttype or perms.main.create_document_type or perms.main.edit_document_type or perms.main.delete_document_type %}
+            {% if perms.main.view_user or perms.main.create_user or perms.main.edit_user or perms.main.delete_user or perms.main.change_password or perms.auth.view_group or perms.auth.create_group or perms.auth.edit_group or perms.auth.delete_group or perms.main.view_documenttype or perms.main.create_document_type or perms.main.edit_document_type or perms.main.delete_document_type %}
               <li>
                 <a href="#">
                   <i class="fas fa-cogs"></i> Configuración
                 </a>
                 <ul class="submenu">
-                  {% if perms.auth.view_user or perms.auth.create_user or perms.auth.edit_user or perms.auth.delete_user or perms.auth.change_password %}
+                  {% if perms.main.view_user or perms.main.create_user or perms.main.edit_user or perms.main.delete_user or perms.main.change_password %}
                     <li>
                       <a href="{% url 'manage_users' %}" class="{% if request.resolver_match.url_name == 'manage_users' %}active{% endif %}">
                         <i class="fas fa-users"></i> Usuarios
@@ -133,7 +133,7 @@
               </li>
             {% endif %}
     
-            {% if request.user.is_superuser or perms.main.view_audit or perms.auth.access_settings %}
+            {% if request.user.is_superuser or perms.main.view_audit or perms.main.access_settings %}
               <li>
                 <a href="#">
                   <i class="fas fa-user-shield"></i> Administración
@@ -146,7 +146,7 @@
                       </a>
                     </li>
                   {% endif %}
-                  {% if request.user.is_superuser or perms.auth.access_settings %}
+                  {% if request.user.is_superuser or perms.main.access_settings %}
                     <li>
                       <a href="{% url 'manage_settings' %}" class="{% if request.resolver_match.url_name == 'manage_settings' %}active{% endif %}">
                         <i class="fas fa-sliders-h"></i> Ajustes
@@ -179,16 +179,18 @@
   {% block content %}
     <div class="content{% if request.resolver_match.url_name == 'login' %} login-page{% endif %}">
       <div class="content-inner">
-        {% if messages %}
-          <div id="flash-messages">
-            {% for message in messages %}
-              <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
+          
+        <div id="flash-messages">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
         {% block dashboard_content %}{% endblock %}
       </div>
     </div>
@@ -209,5 +211,12 @@
       });
     </script>
   {% endblock %}
+  
+  <!-- 🔔 Contenedor global de toasts -->
+  <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;"></div>
+
+  <!-- 🔄 Cargar JS de notificaciones -->
+  <script src="{% static 'js/main.js' %}"></script>
+
 </body>
 </html>

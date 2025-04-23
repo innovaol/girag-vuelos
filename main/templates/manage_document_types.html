@@ -6,9 +6,17 @@
 {% block dashboard_content %}
 <div class="container">
   <h2 class="mt-4">Lista de Tipos de Documentos</h2>
-  {% if perms.main.create_document_type %}
-    <a href="{% url 'create_document_type' %}" class="btn btn-primary mb-3">Crear Tipo de Documento</a>
-  {% endif %}
+  <div class="d-flex justify-content-between mb-3">
+    {% if perms.main.create_document_type %}
+      <a href="{% url 'create_document_type' %}" class="btn btn-primary mb-3">Crear Tipo de Documento</a>
+    {% endif %}
+
+    {% if perms.main.restore_documenttype %}
+      <a href="{% url 'archived_document_types' %}" class="btn btn-secondary mb-3">
+        <i class="fas fa-archive"></i> Tipos de Documentos Archivados
+      </a>
+    {% endif %}
+  </div>
 
   <table class="table dataTable sortable">
     <thead>
@@ -20,26 +28,29 @@
     </thead>
     <tbody>
       {% for dt in doc_types %}
-      <tr>
-        <td>{{ dt.id }}</td>
-        <td>{{ dt.name }}</td>
-        <td class="action-buttons">
-          {% if perms.main.edit_document_type %}
-            <a href="{% url 'edit_document_type' dt.id %}" data-bs-toggle="tooltip" title="Editar">
-              <i class="fas fa-pencil-alt action-icon"></i>
-            </a>
-          {% endif %}
-          {% if perms.main.delete_document_type %}
-            <a href="{% url 'delete_document_type' dt.id %}" onclick="return confirm('¿Estás seguro de eliminar este tipo de documento?');" data-bs-toggle="tooltip" title="Eliminar">
-              <i class="fas fa-trash-alt action-icon"></i>
-            </a>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="3" class="text-center">No hay tipos de documentos registrados.</td>
-      </tr>
+          <tr>
+            <td>{{ dt.id }}</td>
+            <td>{{ dt.name }}</td>
+            <td class="action-buttons">
+              {% if perms.main.edit_document_type %}
+                <a href="{% url 'edit_document_type' dt.id %}" data-bs-toggle="tooltip" title="Editar">
+                  <i class="fas fa-pencil-alt action-icon"></i>
+                </a>
+              {% endif %}
+              {% if perms.main.delete_document_type %}
+                <a href="#"
+                   onclick="confirmDelete({{ dt.id }}, '/document_types/delete/{{ dt.id }}/', '/document_types/archive/{{ dt.id }}/', 'tipo de documento')"
+                   class="btn-action-delete"
+                   data-bs-toggle="tooltip" title="Eliminar">
+                   <i class="fas fa-trash-alt action-icon"></i>
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3" class="text-center">No hay tipos de documentos registrados.</td>
+          </tr>
       {% endfor %}
     </tbody>
   </table>
@@ -52,4 +63,30 @@
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
   </script>
+  <script>
+      function confirmDeleteDocumentType(documentTypeId) {
+        if (confirm("¿Estás seguro de eliminar este tipo de documento?")) {
+          fetch(`/document_types/delete/${documentTypeId}/`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.archivable) {
+                if (confirm(data.error + " ¿Deseas archivarlo?")) {
+                  window.location.href = `/document-types/archive/${documentTypeId}/`;
+                }
+              } else if (data.success) {
+                console.log("✅ Eliminación exitosa. Guardando mensaje antes del reload.");
+                localStorage.setItem("flashMessage", data.message || "Tipo de documento eliminado correctamente.");
+                localStorage.setItem("flashMessageType", "success");
+                setTimeout(() => window.location.reload(), 200);
+              } else {
+                showToast("❌ " + (data.error || "Error al eliminar el tipo de documento."), "danger");
+              }
+            })
+            .catch(error => {
+              showToast("❌ Error al procesar la solicitud.", "danger");
+            });
+        }
+      }
+    </script>
+
 {% endblock %}

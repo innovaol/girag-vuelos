@@ -16,7 +16,7 @@
       Información del Vuelo
     </div>
     <div class="card-body">
-      <p><strong>Fecha:</strong> {{ flight.date }}</p>
+      <p><strong>Fecha:</strong> {{ formatted_date }}</p>
       <p><strong>Aerolínea:</strong> {{ flight.airline }}</p>
       <p>
         <strong>Creado por:</strong>
@@ -43,7 +43,7 @@
       <p>
         {# Botón para revertir el vuelo a "Pendiente" solo si el estado no es pending y el usuario tiene el permiso especial #}
         {% if perms.main.admin_vuelos and flight.status != 'pending' %}
-          <a href="{% url 'revert_flight_to_pending' flight.id %}?next={{ next_url }}" class="btn btn-warning">
+          <a href="{% url 'revert_flight_to_pending' flight.id %}?next={{ next_url }}" class="btn btn-warning" onclick="return confirm('¿Estás seguro que deseas revertir este vuelo a estado Pendiente?');">
             Revertir a Pendiente
           </a>
         {% endif %}
@@ -66,7 +66,7 @@
     <tbody>
       {% for doc in documents %}
       <tr>
-        <td>{{ doc.doc_type }}</td>
+        <td>{{ doc.doc_type.name }}</td>
         <td>{{ doc.file.name|cut:"documents/" }}</td>
         <td>
           <button 

@@ -397,4 +397,22 @@ table.dataTable tbody tr:nth-child(even) {
 }
 
 
+/* Contenedor de permisos */
+.permissions-container {
+  border: 1px solid #ccc;
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.permissions-container > label {
+  font-size: 1rem;
+}
+
+.permissions-item .form-check {
+  font-size: 1rem;
+}
+
+
+
+
 /* ------------------ Fin de Global Styles ------------------ */

@@ -3,7 +3,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AdminPasswordChangeForm
 from main.models.custom_user import CustomUser  # Importa tu modelo personalizado
-from django.contrib.auth.models import Group
+from main.models.custom_group import CustomGroup
 
 class CustomUserCreationForm(UserCreationForm):
     username = forms.CharField(max_length=150, required=True, label="Nombre de usuario")
@@ -18,11 +18,13 @@ class CustomUserCreationForm(UserCreationForm):
     is_billing_supervisor = forms.BooleanField(required=False, label="Facturador de Vuelos")
     is_admin_vuelos = forms.BooleanField(required=False, label="Admin de Vuelos")
     group = forms.ModelChoiceField(
-        queryset=Group.objects.all(),
+        queryset=CustomGroup.objects.all(),
         required=False,
         empty_label="Sin grupo",
         label="Grupo"
     )
+
+
     
     class Meta:
         model = CustomUser
@@ -54,7 +56,7 @@ class CustomUserChangeForm(UserChangeForm):
     is_billing_supervisor = forms.BooleanField(required=False, label="Facturador de Vuelos")
     is_admin_vuelos = forms.BooleanField(required=False, label="Admin de Vuelos")
     group = forms.ModelChoiceField(
-        queryset=Group.objects.all(),
+        queryset=CustomGroup.objects.all(),
         required=False,
         empty_label="Sin grupo",
         label="Grupo",
@@ -70,7 +72,7 @@ class CustomUserChangeForm(UserChangeForm):
         instance = kwargs.get('instance')
         if instance:
             initial = kwargs.setdefault('initial', {})
-            groups = instance.groups.all()
+            groups = instance.groups_custom.all()
             if groups.exists():
                 initial['group'] = groups[0]
             else:
@@ -85,15 +87,15 @@ class CustomUserChangeForm(UserChangeForm):
         if commit:
             user.save()
             if group:
-                user.groups.set([group])
+                user.groups_custom.set([group])
             else:
-                user.groups.clear()
+                user.groups_custom.clear()
         else:
             def save_m2m():
                 if group:
-                    user.groups.set([group])
+                    user.groups_custom.set([group])
                 else:
-                    user.groups.clear()
+                    user.groups_custom.clear()
             self.save_m2m = save_m2m
         return user
         

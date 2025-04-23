@@ -16,16 +16,16 @@ class Flight(models.Model):
     created_at = models.DateField(auto_now_add=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
+        on_delete=models.RESTRICT, 
         null=True, 
         blank=True,
         related_name="created_flights"
     )
-    airline = models.ForeignKey(Airline, on_delete=models.CASCADE, related_name='flights')
-    aircraft = models.ForeignKey(Aircraft, on_delete=models.CASCADE, related_name='flight_list', null=True, blank=True)
+    airline = models.ForeignKey(Airline, on_delete=models.RESTRICT, related_name='flights')
+    aircraft = models.ForeignKey(Aircraft, on_delete=models.RESTRICT, related_name='flight_list', null=True, blank=True)
     billing_user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
+        on_delete=models.RESTRICT, 
         null=True, 
         blank=True, 
         related_name="billing_user", 
@@ -48,6 +48,8 @@ class Flight(models.Model):
             ("mark_as_billed", "Puede marcar vuelos como facturados"),
             ("admin_vuelos", "Puede administrar vuelos (revertir estado)"),
         ]
+        
+        default_permissions = ()  # 🔒 Desactiva los permisos automáticos de Django
 
     def __str__(self):
         return f"Vuelo {self.flight_number} - {self.airline.name}"

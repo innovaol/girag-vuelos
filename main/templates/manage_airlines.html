@@ -8,9 +8,19 @@
 {% block dashboard_content %}
 <div class="container">
   <h2 class="mt-4">Lista de Aerolíneas</h2>
-  {% if perms.main.create_airline %}
-    <a href="{% url 'create_airline' %}" class="btn btn-primary mb-3">Crear Aerolínea</a>
-  {% endif %}
+  <div class="d-flex justify-content-between mb-3">
+    {% if perms.main.create_airline %}
+      <a href="{% url 'create_airline' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Crear Aerolínea
+      </a>
+    {% endif %}
+
+    {% if perms.main.restore_airline %}
+      <a href="{% url 'archived_airlines' %}" class="btn btn-secondary">
+        <i class="fas fa-archive"></i> Aerolíneas Archivadas
+      </a>
+    {% endif %}
+  </div>
   <table class="table table-striped sortable">
     <thead class="table-primary">
       <tr>
@@ -31,9 +41,13 @@
             </a>
           {% endif %}
           {% if perms.main.delete_airline %}
-            <a href="{% url 'delete_airline' airline.id %}" class="btn-action-delete" onclick="return confirm('¿Estás seguro de eliminar esta aerolínea?');" data-bs-toggle="tooltip" title="Eliminar">
-              <i class="fas fa-trash-alt action-icon"></i>
+            <a href="#"
+               onclick="confirmDelete({{ airline.id }}, '/airlines/delete/{{ airline.id }}/', '/airlines/archive/{{ airline.id }}/', 'aerolínea')"
+               class="btn-action-delete"
+               data-bs-toggle="tooltip" title="Eliminar">
+               <i class="fas fa-trash-alt action-icon"></i>
             </a>
+
           {% endif %}
         </td>
       </tr>

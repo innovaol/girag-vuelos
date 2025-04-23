@@ -80,10 +80,6 @@
         <td>{{ flight.date|date:"d/m/Y" }}</td>
         <td>{{ flight.airline }}</td>
       </tr>
-      {% empty %}
-      <tr>
-        <td colspan="4" class="text-center">No hay vuelos disponibles.</td>
-      </tr>
       {% endfor %}
     </tbody>
   </table>

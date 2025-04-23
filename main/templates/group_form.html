@@ -1,3 +1,5 @@
+<!-- /home/innovaol/girapp/main/templates/group_form.html -->
+
 {% extends "base.html" %}
 {% load static %}
 {% load widget_tweaks %}
@@ -28,36 +30,53 @@
       <div class="invalid-feedback" style="display: none;">El nombre del grupo es obligatorio.</div>
     </div>
 
-    <div class="col-md-12">
-      <label class="form-label">Permisos Disponibles</label>
-      <div class="row">
-        {% for category, perms in permission_categories.items %}
-        <fieldset class="border p-2 mb-2">
-          <legend class="fw-bold">{{ category }}</legend>
-          <div class="row">
-            {% for perm in perms %}
-            <div class="col-md-4">
-              <label>
-                <input type="checkbox" name="permissions" value="{{ perm.id }}"
-                       {% if perm.id in selected_permissions %}checked{% endif %}>
-                {{ perm.name }}
-              </label>
+    <!-- Permisos Disponibles (Group Form) -->
+    <div class="col-md-12 permissions-container">
+      <div class="d-flex align-items-center mb-2">
+        <label class="form-label fw-bold text-uppercase mb-0">Permisos Disponibles</label>
+        <div class="form-check ms-4">
+          <input type="checkbox" id="select_all_permissions" class="form-check-input">
+          <label class="form-check-label" for="select_all_permissions">Seleccionar todos</label>
+        </div>
+      </div>
+      <div class="row row-cols-2 row-cols-md-4 g-2">
+        {% for section, perms in permissions.items %}
+          {% for perm in perms %}
+            <div class="col permissions-item">
+              <div class="form-check">
+                <input type="checkbox" name="permissions" value="{{ perm.id }}" class="form-check-input"
+                {% if perm.id in selected_permissions %}checked{% endif %}>
+                <label class="form-check-label">{{ perm.name }}</label>
+              </div>
             </div>
-            {% endfor %}
-          </div>
-        </fieldset>
+          {% endfor %}
         {% endfor %}
       </div>
-      <!-- Si deseas validar que se seleccione al menos un permiso, se podría agregar otro div de error -->
-      <!-- <div class="invalid-feedback" style="display: none;">Debes seleccionar al menos un permiso.</div> -->
     </div>
-
+    <!-- Fin de la lista de permisos -->
+    
     <div class="col-12">
       <button type="submit" class="btn btn-primary">Guardar</button>
       <a href="{% url 'manage_groups' %}" class="btn btn-secondary">Cancelar</a>
     </div>
   </form>
 </div>
+{% endblock %}
 
-<script src="{% static 'js/validations.js' %}"></script>
+{% block extra_scripts %}
+  {{ block.super }}
+  <script src="{% static 'js/validations.js' %}"></script>
+  
+  <script>
+    $('#select_all_permissions').on('change', function() {
+      $('input[name="permissions"]').prop('checked', this.checked);
+    });
+
+    // Si quieres que al desmarcar un permiso “Seleccionar todos” se desactive:
+    $('input[name="permissions"]').on('change', function() {
+      if (!this.checked) {
+        $('#select_all_permissions').prop('checked', false);
+      }
+    });
+  </script>
 {% endblock %}

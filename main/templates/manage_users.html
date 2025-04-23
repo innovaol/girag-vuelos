@@ -1,3 +1,5 @@
+<!-- /home/innovaol/girapp/main/templates/manage_users.html -->
+
 {% extends "base.html" %}
 {% load static %}
 
@@ -6,9 +8,19 @@
 {% block dashboard_content %}
 <div class="container">
   <h2 class="mt-4">Lista de Usuarios</h2>
-  {% if perms.auth.create_user %}
-    <a href="{% url 'create_user' %}" class="btn btn-primary mb-3">Crear Usuario</a>
-  {% endif %}
+  <div class="d-flex justify-content-between mb-3">
+    {% if perms.main.create_user %}
+      <a href="{% url 'create_user' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Crear Usuario
+      </a>
+    {% endif %}
+
+    {% if perms.main.restore_user %}
+      <a href="{% url 'archived_users' %}" class="btn btn-secondary">
+        <i class="fas fa-archive"></i> Usuarios Archivados
+      </a>
+    {% endif %}
+  </div>
   <table class="table table-striped sortable">
     <thead class="table-primary">
       <tr>
@@ -43,7 +55,7 @@
           {% endif %}
         </td>
         <td class="action-buttons">
-          {% if perms.auth.change_password %}
+          {% if perms.main.change_password %}
             <!-- Enlace normal, sin AJAX -->
             <a href="{% url 'change_user_password' u.id %}" 
                class="btn-action-password" 
@@ -53,15 +65,15 @@
             </a>
           {% endif %}
 
-          {% if perms.auth.edit_user %}
+          {% if perms.main.edit_user %}
             <a href="{% url 'edit_user' u.id %}" class="btn-action-edit" data-bs-toggle="tooltip" title="Editar">
               <i class="fas fa-pencil-alt action-icon"></i>
             </a>
           {% endif %}
 
-          {% if perms.auth.delete_user %}
-            <a href="{% url 'delete_user' u.id %}" class="btn-action-delete" 
-               onclick="return confirm('¿Estás seguro de eliminar este usuario?');" 
+          {% if perms.main.delete_user %}
+            <a href="#" class="btn-action-delete"
+               onclick="confirmDelete({{ user.id }}, '/users/delete/{{ user.id }}/', '/users/archive/{{ user.id }}/', 'usuario')"
                data-bs-toggle="tooltip" title="Eliminar">
               <i class="fas fa-trash-alt action-icon"></i>
             </a>

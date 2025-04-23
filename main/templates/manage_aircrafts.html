@@ -9,9 +9,17 @@
 <div class="container">
   <h2 class="mt-4">Lista de Aeronaves</h2>
 
-  {% if perms.main.create_aircraft %}
-    <a href="{% url 'create_aircraft' %}" class="btn btn-primary mb-3">Crear Aeronave</a>
-  {% endif %}
+  <div class="d-flex justify-content-between mb-3">
+    <a href="{% url 'create_aircraft' %}" class="btn btn-primary">
+  <i class="fas fa-plus"></i> Crear Aeronave
+</a>
+
+    {% if perms.main.restore_aircraft %}
+      <a href="{% url 'archived_aircrafts' %}" class="btn btn-secondary">
+        <i class="fas fa-archive"></i> Aeronaves Archivadas
+      </a>
+    {% endif %}
+  </div>
 
   <table class="table table-striped sortable">
     <thead class="table-primary">
@@ -36,10 +44,15 @@
           {% endif %}
           
           {% if perms.main.delete_aircraft %}
-            <a href="{% url 'delete_aircraft' aircraft.id %}" class="btn-action-delete" onclick="return confirm('¿Estás seguro de eliminar esta aeronave?');" data-bs-toggle="tooltip" title="Eliminar">
-              <i class="fas fa-trash-alt action-icon"></i>
+            <a href="#"
+               onclick="confirmDelete({{ aircraft.id }}, '/aeronaves/delete/{{ aircraft.id }}/', '/aeronaves/archive/{{ aircraft.id }}/', 'aeronave')"
+               class="btn-action-delete"
+               data-bs-toggle="tooltip" title="Eliminar">
+               <i class="fas fa-trash-alt action-icon"></i>
             </a>
+
           {% endif %}
+
         </td>
       </tr>
       {% empty %}

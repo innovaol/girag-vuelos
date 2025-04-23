@@ -11,7 +11,7 @@ User = get_user_model()
 
 
 class FlightForm(forms.ModelForm):
-    billing_user = forms.ModelChoiceField(queryset=User.objects.filter(groups__name='Facturación'), required=False)
+    billing_user = forms.ModelChoiceField(queryset=User.objects.filter(groups_custom__name='Facturación'), required=False)
     
     # Campo extra para mostrar la fecha de creación (solo lectura)
     created_at = forms.DateField(

@@ -1,0 +1,59 @@
+<!-- /home/innovaol/girapp/main/templates/archived_groups.html -->
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Grupos Archivados{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Grupos Archivados</h2>
+
+  <div class="d-flex justify-content-between mb-3">
+    <a href="{% url 'manage_groups' %}" class="btn btn-primary">
+      <i class="fas fa-arrow-left"></i> Volver a Gestión de Grupos
+    </a>
+  </div>
+
+  <table class="table table-striped sortable">
+    <thead class="table-warning">
+      <tr>
+        <th>ID</th>
+        <th>Nombre del Grupo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for g in groups %}
+      <tr>
+        <td>{{ g.id }}</td>
+        <td>{{ g.name }}</td>
+        <td class="action-buttons">
+          {% if perms.auth.restore_group %}
+            <a href="{% url 'restore_group' g.id %}" class="btn-action-restore"
+               onclick="return confirm('¿Deseas restaurar este grupo?');"
+               data-bs-toggle="tooltip" title="Restaurar">
+              <i class="fas fa-undo-alt action-icon"></i>
+            </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3" class="text-center">No hay grupos archivados.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  </script>
+{% endblock %}

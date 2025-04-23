@@ -24,7 +24,7 @@ logger.addHandler(handler)
 ROUTE_PERMISSIONS = {
     # Dashboard
     "dashboard": {
-        "auth.access_dashboard",
+        "main.access_dashboard",
     },
 
     # Vuelos (Flight)
@@ -81,27 +81,27 @@ ROUTE_PERMISSIONS = {
         "main.delete_aircraft",
     },
 
-    # Usuarios (User) => auth.*
+    # Usuarios (User) => main.*
     "manage_users": {
-        "auth.view_user",
-        "auth.create_user",
-        "auth.edit_user",
-        "auth.delete_user",
+        "main.view_user",
+        "main.create_user",
+        "main.edit_user",
+        "main.delete_user",
     },
     "create_user": {
-        "auth.create_user",
+        "main.create_user",
     },
     "edit_user": {
-        "auth.edit_user",
+        "main.edit_user",
     },
     "delete_user": {
-        "auth.delete_user",
+        "main.delete_user",
     },
     "change_user_password": {
-        "auth.change_password",
+        "main.change_password",
     },
 
-    # Grupos (Group) => auth.*
+    # Grupos (Group) => main.*
     "manage_groups": {
         "auth.view_group",
         "auth.create_group",
@@ -148,7 +148,7 @@ ROUTE_PERMISSIONS = {
 
     # Ajustes
     "manage_settings": {
-        "auth.access_settings",
+        "main.access_settings",
     },
 }
 
@@ -165,7 +165,8 @@ def get_user_permissions(user):
     user_permissions = {f"{p.content_type.app_label}.{p.codename}" for p in user_perms_qs}
 
     # Permisos de grupo
-    for group in user.groups.all():
+    # Usar groups_custom en lugar del campo 'groups' de Django
+    for group in user.groups_custom.all():
         perms_qs = group.permissions.all()
         group_perms = {f"{p.content_type.app_label}.{p.codename}" for p in perms_qs}
         user_permissions |= group_perms

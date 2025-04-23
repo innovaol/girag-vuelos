@@ -5,9 +5,11 @@ from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from main.views.notification_views import mark_as_billed
 
-# Notificaciones
-from main.views import notification_views
 
+# Notificaciones
+from main.views import (
+    notification_views, aircraft_views
+)
 
 # Vistas principales
 from main import core_views as views
@@ -24,17 +26,20 @@ from main.views.flight_views import (
 
 # Vistas de aerolíneas
 from main.views.airline_views import (
-    manage_airlines, create_airline, edit_airline, delete_airline, check_airline_name
+    manage_airlines, create_airline, edit_airline, delete_airline, check_airline_name,
+    archived_airlines, restore_airline, archive_airline
 )
 
 # Vistas de aeronaves
 from main.views.aircraft_views import (
-    manage_aircrafts, aircraft_form, delete_aircraft, check_aircraft_name, get_aircrafts_by_airline
+    manage_aircrafts, aircraft_form, delete_aircraft, check_aircraft_name, get_aircrafts_by_airline,
+    archived_aircrafts, restore_aircraft, archive_aircraft
 )
 
 # Vistas de documentos y tipos de documentos
 from main.views.document_type_views import (
-    manage_document_types, create_document_type, edit_document_type, delete_document_type, check_document_type_name
+    manage_document_types, create_document_type, edit_document_type, delete_document_type, check_document_type_name,
+    archived_document_types, restore_document_type, archive_document_type
 )
 from main.views.document_views import view_document, delete_document
 
@@ -45,19 +50,17 @@ from main.views.audit_views import audit_logs, audit_detail
 from main.views.auth_views import unauthorized
 from main.views.user_views import (
     manage_users, create_user, edit_user, delete_user, change_user_password,
+    archived_users, restore_user, archive_user,
     check_username, check_email  # 🔹 Validaciones AJAX aquí
 )
 from main.views.group_views import (
     manage_groups, create_group, edit_group, delete_group,
-    check_group_name  # 🔹 Validación AJAX aquí
+    check_group_name, archived_groups, restore_group, archive_group
 )
 
 # Vistas de permisos (Gestión y asignación)
 from main.views.permissions_manage_views import manage_permissions
 from main.views.permissions_assign_views import assign_permissions
-
-# Vistas de navegación
-from main.views.navigation_views import manage_navigation_sections
 
 urlpatterns = [
     # Notificaciones
@@ -75,7 +78,6 @@ urlpatterns = [
     path('flights/delete/<int:flight_id>/', delete_flight, name='delete_flight'),
     path('flights/form/', flight_form, name='create_flight'),
     path('flights/form/<int:flight_id>/', flight_form, name='edit_flight'),
-    # ✅ API para obtener aeronaves por aerolínea
     path('api/aircrafts/<int:airline_id>/', get_aircrafts_by_airline, name='get_aircrafts_by_airline'),
     # ✅ Validación AJAX del número de vuelo
     path("check/flight_number/", check_flight_number, name="check_flight_number"),
@@ -89,6 +91,9 @@ urlpatterns = [
     path('airlines/edit/<int:airline_id>/', edit_airline, name='edit_airline'),
     path('airlines/delete/<int:airline_id>/', delete_airline, name='delete_airline'),
     path("check/airline/", check_airline_name, name="check_airline_name"),
+    path('airlines/archivadas/', archived_airlines, name='archived_airlines'),
+    path('airlines/archive/<int:airline_id>/', archive_airline, name='archive_airline'),
+    path('airlines/restore/<int:airline_id>/', restore_airline, name='restore_airline'),
 
     # Gestión de Aeronaves
     path('aeronaves/', manage_aircrafts, name='manage_aircrafts'),
@@ -96,13 +101,20 @@ urlpatterns = [
     path('aeronaves/edit/<int:pk>/', aircraft_form, name='edit_aircraft'),
     path('aeronaves/delete/<int:pk>/', delete_aircraft, name='delete_aircraft'),
     path("check/aircraft/", check_aircraft_name, name="check_aircraft_name"),
+    # Gestión de Aeronaves Archivadas/Restauradas
+    path('aeronaves/archivadas/', archived_aircrafts, name='archived_aircrafts'),
+    path('aeronaves/archive/<int:pk>/', archive_aircraft, name='archive_aircraft'),
+    path('aeronaves/restaurar/<int:pk>/', restore_aircraft, name='restore_aircraft'),
 
     # Gestión de Tipos de Documento
     path('document-types/', manage_document_types, name='manage_document_types'),
     path('document-types/create/', create_document_type, name='create_document_type'),
     path('document-types/edit/<int:doc_type_id>/', edit_document_type, name='edit_document_type'),
-    path('document-types/delete/<int:doc_type_id>/', delete_document_type, name='delete_document_type'),
+    path('document_types/delete/<int:doc_type_id>/', delete_document_type, name='delete_document_type'),
     path("check/document_type/", check_document_type_name, name="check_document_type_name"),
+    path('document_types/archive/<int:doc_type_id>/', archive_document_type, name='archive_document_type'),
+    path('document_types/archived/', archived_document_types, name='archived_document_types'),
+    path('document_types/restore/<int:doc_type_id>/', restore_document_type, name='restore_document_type'),
 
     # Auditoría
     path('audit/', audit_logs, name='audit_logs'),
@@ -117,10 +129,12 @@ urlpatterns = [
     path('users/edit/<int:user_id>/', edit_user, name='edit_user'),
     path('users/delete/<int:user_id>/', delete_user, name='delete_user'),
     path('users/change-password/<int:user_id>/', change_user_password, name='change_user_password'),
+    path('users/archived/', archived_users, name='archived_users'),
+    path('users/archive/<int:user_id>/', archive_user, name='archive_user'),
+    path('users/restore/<int:user_id>/', restore_user, name='restore_user'),
 
     # Validaciones AJAX
-    path("check/airline/", check_airline_name, name="check_airline_name"),
-    path("aeronaves/check-name/", check_aircraft_name, name="check_aircraft_name"),
+    path("check/aircraft/", check_aircraft_name, name="check_aircraft_name"),
     path("check/document_type/", check_document_type_name, name="check_document_type_name"),
     path("check/username/", check_username, name="check_username"),
     path("check/email/", check_email, name="check_email"),
@@ -131,6 +145,9 @@ urlpatterns = [
     path('groups/create/', create_group, name='create_group'),
     path('groups/edit/<int:group_id>/', edit_group, name='edit_group'),
     path('groups/delete/<int:group_id>/', delete_group, name='delete_group'),
+    path('groups/archive/<int:group_id>/', archive_group, name='archive_group'),
+    path('groups/archived/', archived_groups, name='archived_groups'),
+    path('groups/restore/<int:group_id>/', restore_group, name='restore_group'),
 
     # Documentos
     path('documents/<int:doc_id>/view/', view_document, name='view_document'),
@@ -146,9 +163,6 @@ urlpatterns = [
     # Gestión de Permisos
     path('manage-permissions/', manage_permissions, name='manage_permissions'),
     path('assign-permissions/', assign_permissions, name='assign_permissions'),
-
-    # Gestión de Secciones (Navegación)
-    path('manage_settings/navigation_sections/', manage_navigation_sections, name='manage_navigation_sections'),
 
     # Admin
     # path('admin/', admin.site.urls),

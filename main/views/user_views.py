@@ -1,13 +1,22 @@
 # /home/innovaol/AppVuelos/main/views/user_views.py
 
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-import json
+from django.db import IntegrityError
 from django.contrib.auth import get_user_model
-from main.views.permissions_views import get_available_permissions
 from django.contrib.auth.models import Permission
+from main.models.custom_group import CustomGroup
+from main.models.flight import Flight  # ✅ Para validar vuelos asociados
+from main.models.custom_user import CustomUser  # ✅ Ruta corregida para CustomUser
+from main.models.audit_log import AuditLog  # ✅ Importación corregida de AuditLog
+from main.views.permissions_views import get_available_permissions
+from main.utils.audit import log_action  # ✅ Para registrar acciones de auditoría
+import json
+from django.urls import reverse
+from django.views.decorators.http import require_POST
+
 
 # Define los codenames especiales que no quieres en la lista regular
 # special_codenames = ['admin_vuelos', 'approve_flight', 'mark_as_billed']
@@ -19,28 +28,42 @@ User = get_user_model()
 
 def manage_users(request):
     """ Vista para listar usuarios """
-    users = User.objects.all().order_by('username')
+    users = User.objects.filter(is_archived=False).order_by('username')
     user_data = [
         {
             'id': u.id,
             'username': u.username,
             'email': u.email,
             'is_active': u.is_active,
-            'group': u.groups.first().name if u.groups.exists() else "Sin grupo",
+            'group': u.groups_custom.first().name if u.groups_custom.exists() else "Sin grupo",
             'last_login': u.last_login
         }
         for u in users
     ]
     return render(request, 'manage_users.html', {'users': user_data})
 
-@permission_required('auth.create_user', login_url='unauthorized')
+@permission_required('main.create_user', login_url='unauthorized')
 def create_user(request):
     from main.forms.user_forms import CustomUserCreationForm
 
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            username = form.cleaned_data.get('username')
+            # Log para ver cuántos registros existen con ese username
+            existing = User.objects.filter(username=username).count()
+            print("Número de registros existentes para username '{}': {}".format(username, existing))
+                
+            try:
+                user = form.save()
+                # Asignar grupo si se seleccionó
+                group = form.cleaned_data.get('group')
+                if group:
+                    user.groups_custom.set([group])
+
+            except Exception as e:
+                print("Error al guardar usuario:", e)
+                raise
 
             # Admin de vuelos
             if form.cleaned_data.get('is_admin_vuelos'):
@@ -50,14 +73,18 @@ def create_user(request):
             # Supervisores
             if form.cleaned_data.get('is_flight_supervisor'):
                 try:
-                    Group.objects.get(name="Supervisores de Vuelos").user_set.add(user)
+                    CustomGroup.objects.get(name="Supervisores de Vuelos").users_custom.add(user)
                 except Group.DoesNotExist:
                     messages.warning(request, "No existe el grupo 'Supervisores de Vuelos'.")
+                    
             if form.cleaned_data.get('is_billing_supervisor'):
                 try:
                     Group.objects.get(name="Facturadores de Vuelos").user_set.add(user)
                 except Group.DoesNotExist:
                     messages.warning(request, "No existe el grupo 'Facturadores de Vuelos'.")
+            
+            # Permisos normales:
+            user.user_permissions.set(request.POST.getlist('permissions'))
             
             messages.success(request, 'Usuario creado correctamente.')
             return redirect('manage_users')
@@ -72,7 +99,7 @@ def create_user(request):
         'selected_permissions': []
     })
 
-@permission_required('auth.edit_user', login_url='unauthorized')
+@permission_required('main.edit_user', login_url='unauthorized')
 def edit_user(request, user_id):
     from main.forms.user_forms import CustomUserChangeForm
     user_obj = get_object_or_404(User, pk=user_id)
@@ -85,9 +112,9 @@ def edit_user(request, user_id):
             # Grupo
             group = form.cleaned_data.get('group')
             if group:
-                user.groups.set([group])
+                user.groups_custom.set([group])
             else:
-                user.groups.clear()
+                user.groups_custom.clear()
 
             # Permisos normales
             user.user_permissions.set(request.POST.getlist('permissions'))
@@ -114,13 +141,41 @@ def edit_user(request, user_id):
         'selected_permissions': list(user_obj.user_permissions.values_list("id", flat=True))
     })
 
-@permission_required('auth.delete_user', login_url='unauthorized')
+@require_POST
+@login_required
+@permission_required('main.delete_user', raise_exception=True)
 def delete_user(request, user_id):
-    """ Vista para eliminar un usuario """
-    user_obj = get_object_or_404(User, pk=user_id)
-    user_obj.delete()
-    messages.warning(request, f'Usuario {user_obj.username} eliminado.')
-    return redirect('manage_users')
+    """Vista para eliminar un usuario. Si tiene vuelos asociados, sugiere archivarlo."""
+    user = get_object_or_404(CustomUser, pk=user_id)
+
+    vuelos_asociados = Flight.objects.filter(created_by=user).exists() or \
+                       Flight.objects.filter(approved_by=user).exists() or \
+                       Flight.objects.filter(billed_by=user).exists()
+
+    if vuelos_asociados:
+        return JsonResponse({
+            'success': False,
+            'archivable': True,
+            'error': f'El usuario "{user.username}" está asociado a vuelos y no puede eliminarse.'
+        })
+
+    try:
+        username = user.username
+        user.delete()
+        log_action(request.user, "Eliminó usuario", f"Usuario {username} eliminado correctamente.")
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Usuario "{username}" eliminado correctamente.'
+        })
+
+    except IntegrityError as e:
+        log_action(request.user, "Error al eliminar usuario", f"No se pudo eliminar {user.username}: {str(e)}")
+        return JsonResponse({ 'success': False, 'error': str(e) })
+
+    except Exception as e:
+        log_action(request.user, "Error inesperado al eliminar usuario", f"No se pudo eliminar {user.username}: {str(e)}")
+        return JsonResponse({ 'success': False, 'error': f'Error inesperado: {str(e)}' })
 
 def check_username(request):
     """ Verifica si un nombre de usuario ya existe """
@@ -142,13 +197,13 @@ def check_email(request):
             return JsonResponse({"valid": False, "error": "Este correo electrónico ya está en uso."})
         return JsonResponse({"valid": True})
 
-@permission_required('auth.change_password', login_url='unauthorized')
+@permission_required('main.change_password', login_url='unauthorized')
 def change_user_password(request, user_id):
     """Vista para cambiar la contraseña de un usuario sin AJAX."""
     from main.forms.user_forms import CustomAdminPasswordChangeForm
     user_instance = get_object_or_404(User, pk=user_id)
 
-    if request.user != user_instance and not request.user.has_perm('auth.change_password'):
+    if request.user != user_instance and not request.user.has_perm('main.change_password'):
         return HttpResponseForbidden("No tienes permisos para cambiar esta contraseña.")
 
     if request.method == 'POST':
@@ -168,3 +223,64 @@ def change_user_password(request, user_id):
         'form': form,
         'user_instance': user_instance
     })
+
+@login_required
+@permission_required('auth.restore_user', raise_exception=True)
+def archived_users(request):
+    """
+    Lista usuarios archivados (is_archived=True)
+    """
+    users = CustomUser.all_objects.filter(is_archived=True).order_by('username')
+    user_data = [
+        {
+            'id': u.id,
+            'username': u.username,
+            'email': u.email,
+            'is_active': u.is_active,
+            'group': u.groups_custom.first().name if u.groups_custom.exists() else "Sin grupo",
+            'last_login': u.last_login
+        }
+        for u in users
+    ]
+    return render(request, 'archived_users.html', {'users': user_data})
+
+@require_POST
+@login_required
+@permission_required('main.delete_user', raise_exception=True)
+def archive_user(request, user_id):
+    user = get_object_or_404(CustomUser, pk=user_id)
+
+    # ❌ No permitir archivar al único superusuario activo
+    if user.is_superuser and CustomUser.objects.filter(is_superuser=True, is_active=True, is_archived=False).count() == 1:
+        return JsonResponse({
+            'success': False,
+            'error': 'No se puede archivar al único superusuario activo del sistema.'
+        })
+
+    vuelos_asociados = Flight.objects.filter(created_by=user).exists() or \
+                       Flight.objects.filter(approved_by=user).exists() or \
+                       Flight.objects.filter(billed_by=user).exists()
+
+    if vuelos_asociados:
+        return JsonResponse({
+            'success': False,
+            'error': f'El usuario "{user.username}" está asociado a vuelos y no puede archivarse.'
+        })
+
+    user.is_archived = True
+    user.is_active = False
+    user.save()
+
+    log_action(request.user, "Archivó usuario", f"Usuario {user.username} archivado.")
+    return JsonResponse({ 'success': True, 'message': f'Usuario "{user.username}" archivado correctamente.' })
+
+
+@login_required
+@permission_required('main.restore_user', raise_exception=True)
+def restore_user(request, user_id):
+    user_obj = get_object_or_404(CustomUser.all_objects, pk=user_id, is_archived=True)
+    # Verificar si no hay duplicado de username activo, etc. (opcional)
+    user_obj.is_archived = False
+    user_obj.save()
+    messages.success(request, f'Usuario "{user_obj.username}" restaurado.')
+    return redirect('manage_users')

@@ -1,0 +1,59 @@
+<!-- /home/innovaol/girapp/main/templates/archived_aircrafts.html -->
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Aeronaves Archivadas{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Aeronaves Archivadas</h2>
+
+  <div class="d-flex justify-content-between mb-3">
+    <a href="{% url 'manage_aircrafts' %}" class="btn btn-primary">
+      <i class="fas fa-arrow-left"></i> Volver a Gestión de Aeronaves
+    </a>
+  </div>
+
+  <table class="table table-striped sortable">
+    <thead class="table-warning">
+      <tr>
+        <th>ID</th>
+        <th>Aeronave</th>
+        <th>Aerolínea</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for aircraft in aircrafts %}
+      <tr>
+        <td>{{ aircraft.id }}</td>
+        <td>{{ aircraft.aeronave }}</td>
+        <td>{{ aircraft.aerolinea.name }}</td>
+        <td class="action-buttons">
+          {% if perms.main.restore_aircraft %}
+            <a href="{% url 'restore_aircraft' aircraft.id %}" class="btn-action-restore" onclick="return confirm('¿Deseas restaurar esta aeronave?');" data-bs-toggle="tooltip" title="Restaurar">
+              <i class="fas fa-undo-alt action-icon"></i>
+            </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center">No hay aeronaves archivadas.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  </script>
+{% endblock %}

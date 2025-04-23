@@ -1,3 +1,5 @@
+# /home/innovaol/girapp/main/views/permissions_views.py
+
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import render
@@ -86,27 +88,32 @@ def get_available_permissions():
         "edit_airline": "Aerolíneas",
         "delete_airline": "Aerolíneas",
         "view_airline": "Aerolíneas",
+        "restore_airline": "Aerolíneas",
         # Aeronaves
         "create_aircraft": "Aeronaves",
         "edit_aircraft": "Aeronaves",
         "delete_aircraft": "Aeronaves",
         "view_aircraft": "Aeronaves",
+        "restore_aircraft": "Aeronaves",
         # Usuarios
         "change_password": "Usuarios",
         "create_user": "Usuarios",
         "edit_user": "Usuarios",
         "delete_user": "Usuarios",
         "view_user": "Usuarios",
+        "restore_user": "Usuarios",
         # Grupos
         "create_group": "Grupos",
         "edit_group": "Grupos",
         "delete_group": "Grupos",
         "view_group": "Grupos",
+        "restore_group": "Grupos",
         # Tipos de Documento
         "create_document_type": "Tipos de Documento",
         "edit_document_type": "Tipos de Documento",
         "delete_document_type": "Tipos de Documento",
         "view_documenttype": "Tipos de Documento",
+        "restore_document_type": "Tipos de Documento",
         # Auditoría
         "view_audit": "Auditoría",
         "view_audit_detail": "Auditoría",
@@ -140,8 +147,10 @@ def get_available_permissions():
             order = 2
         elif codename.startswith("delete_"):
             order = 3
-        else:
+        elif codename.startswith("restore_"):
             order = 4
+        else:
+            order = 5
         return (order, item["name"])
     
     # Agrupar permisos por sección y ordenar cada grupo según la prioridad

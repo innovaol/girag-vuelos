@@ -1,9 +1,9 @@
 # /home/innovaol/AppVuelos/main/views/flight_views.py
 
 import os
-from datetime import date, timedelta
 import json
 import re
+from datetime import date, timedelta
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, permission_required
@@ -13,15 +13,13 @@ from django.db.models import Count
 from django.db.models.functions import TruncDay
 from django.utils.dateformat import format
 from django.urls import reverse
+from django.core.exceptions import PermissionDenied
 
 from main.models.flight import Flight
 from main.models.document import Document
 from main.models.document_type import DocumentType
-from main.models.aircraft import Aircraft  # Importa el modelo de aeronaves
 from main.forms.flight_forms import FlightForm, FlightReportForm
 from main.utils.audit import log_action
-
-from django.core.exceptions import PermissionDenied
 
 
 @login_required
@@ -78,14 +76,21 @@ def manage_flights(request):
         messages.info(request, "No hay vuelos registrados.")
     return render(request, 'manage_flights.html', {'flights': flights})
 
-@permission_required('main.create_flight', raise_exception=True)
-@permission_required('main.edit_flight', raise_exception=True)
+@login_required
 def flight_form(request, flight_id=None):
     """
     Vista unificada para crear y editar vuelos.
     - Si flight_id es None, se crea un nuevo vuelo.
     - Si tiene valor, se edita el vuelo correspondiente.
     """
+    # Validación interna de permisos:
+    if flight_id:
+        if not request.user.has_perm('main.edit_flight'):
+            raise PermissionDenied("No tienes permiso para editar vuelos.")
+    else:
+        if not request.user.has_perm('main.create_flight'):
+            raise PermissionDenied("No tienes permiso para crear vuelos.")
+
     if flight_id:
         flight = get_object_or_404(Flight, pk=flight_id)
         if flight.status != 'pending':  # ← ADDED
@@ -165,7 +170,7 @@ def flight_form(request, flight_id=None):
                     Document.objects.create(
                         flight=flight,
                         file=file_uploaded,
-                        doc_type=doc_type.name
+                        doc_type=doc_type
                     )
 
             if flight_id:
@@ -208,12 +213,12 @@ def delete_flight(request, flight_id):
 
 @permission_required('main.view_flight', raise_exception=True)
 def flight_detail(request, flight_id):
-    # DEBUG: confirma que la vista se está llamando
-    print(f"DEBUG flight_detail called with id={flight_id}")
-
+    print(f"🟢 Entrando a flight_detail con id={flight_id}")
     flight = get_object_or_404(Flight, pk=flight_id)
     documents = flight.documents.all()
-    flight.date = format(flight.date, "d/m/Y")
+
+    # ✅ No sobrescribimos flight.date, solo formateamos para mostrar
+    formatted_date = format(flight.date, "d/m/Y")
 
     prev_url = request.META.get('HTTP_REFERER', '')
     next_url = prev_url if 'notification' in prev_url else reverse('manage_flights')
@@ -221,6 +226,7 @@ def flight_detail(request, flight_id):
     context = {
         'flight': flight,
         'documents': documents,
+        'formatted_date': formatted_date,
         'next_url': next_url,
     }
     return render(request, 'flight_detail.html', context)
@@ -258,7 +264,3 @@ def revert_flight_to_pending(request, flight_id):
     if next_url:
         return redirect(next_url)
     return redirect('manage_flights')
-
-
-
-

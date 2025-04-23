@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Tipos de Documentos Archivados{% endblock %}
+
+{% block dashboard_content %}
+<div class="container">
+  <h2 class="mt-4">Tipos de Documentos Archivados</h2>
+  <div class="d-flex justify-content-between mb-3">
+    <a href="{% url 'manage_document_types' %}" class="btn btn-primary">
+      <i class="fas fa-arrow-left"></i> Volver a Gestión de Tipos de Documentos
+    </a>
+  </div>
+  <table class="table dataTable sortable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tipo de Documento</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dt in doc_types %}
+      <tr>
+        <td>{{ dt.id }}</td>
+        <td>{{ dt.name }}</td>
+        <td class="action-buttons">
+          {% if perms.main.restore_documenttype %}
+            <a href="{% url 'restore_document_type' dt.id %}" onclick="return confirm('¿Deseas restaurar este tipo de documento?');" data-bs-toggle="tooltip" title="Restaurar">
+              <i class="fas fa-undo-alt action-icon"></i>
+            </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3" class="text-center">No hay tipos de documentos archivados.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+  </script>
+{% endblock %}

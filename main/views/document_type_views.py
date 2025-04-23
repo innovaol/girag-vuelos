@@ -1,9 +1,14 @@
+# /home/innovaol/girapp/main/views/document_type_views.py
+
 from django.contrib.auth.decorators import permission_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-from main.models.document_type import DocumentType
+from django.db import IntegrityError  # ✅ Importación para manejar claves foráneas
+from main.models.document_type import DocumentType  # ✅ Modelo de Tipo de Documento
+from main.models.document import Document  # ✅ Modelo de Documentos para verificar relaciones
 from main.forms.document_type_forms import DocumentTypeForm
+from main.utils.audit import log_action  # ✅ Registro de acciones para auditoría
 import json
 import logging
 
@@ -53,16 +58,51 @@ def edit_document_type(request, doc_type_id):
         form = DocumentTypeForm(instance=doc_type)
     return render(request, 'document_type_form.html', {'form': form, 'title': 'Editar Tipo de Documento'})
 
-@permission_required('main.delete_document_type', login_url='unauthorized')
+@permission_required('main.delete_documenttype', login_url='unauthorized')
 def delete_document_type(request, doc_type_id):
+    """
+    Vista para eliminar un tipo de documento vía JSON/fetch.
+    Si tiene documentos asociados, retorna 'archivable': True.
+    """
     doc_type = get_object_or_404(DocumentType, pk=doc_type_id)
-    logger.warning(f"⚠️ Usuario {request.user.username} está eliminando el tipo de documento '{doc_type.name}'")
+
+    # Verificar si hay documentos asociados
+    if Document.objects.filter(doc_type=doc_type).exists():
+        log_action(
+            request.user,
+            "Intentó eliminar un tipo de documento",
+            f"No se pudo eliminar el tipo de documento '{doc_type.name}' porque tiene documentos asociados."
+        )
+        return JsonResponse({
+            'archivable': True,
+            'error': f'El tipo de documento "{doc_type.name}" no se puede eliminar porque está asociado a documentos.'
+        })
+
     try:
         doc_type.delete()
-        messages.success(request, 'Tipo de documento eliminado correctamente.')
+        log_action(request.user, "Eliminó un tipo de documento", f"Tipo de documento {doc_type.name} eliminado.")
+        return JsonResponse({'success': True})
+    except IntegrityError as e:
+        if "main_document" in str(e):
+            log_action(
+                request.user,
+                "Intentó eliminar un tipo de documento",
+                f"No se pudo eliminar el tipo de documento '{doc_type.name}' debido a documentos asociados."
+            )
+            return JsonResponse({
+                'archivable': True,
+                'error': f'El tipo de documento "{doc_type.name}" no se puede eliminar porque tiene documentos asociados.'
+            })
+        else:
+            log_action(
+                request.user,
+                "Error al eliminar un tipo de documento",
+                f"Tipo de documento {doc_type.name}: {str(e)}"
+            )
+            return JsonResponse({'success': False, 'error': str(e)})
     except Exception as e:
-        messages.error(request, f"No se pudo eliminar el tipo de documento: {str(e)}")
-    return redirect('manage_document_types')
+        log_action(request.user, "Error al eliminar un tipo de documento", f"Tipo de documento {doc_type.name}: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)})
 
 @permission_required('main.create_document_type', login_url='unauthorized')
 def check_document_type_name(request):
@@ -96,3 +136,45 @@ def check_document_type_name(request):
         "valid": False,
         "error": "⚠️ Método no permitido."
     }, status=405)
+
+
+@permission_required('main.delete_documenttype', login_url='unauthorized')
+def archive_document_type(request, doc_type_id):
+    """
+    Vista para archivar un Tipo de Documento.
+    Se marca como archivado en lugar de eliminarlo, incluso si está en uso.
+    """
+    doc_type = get_object_or_404(DocumentType, pk=doc_type_id)
+
+    doc_type.is_archived = True
+    doc_type.save()
+
+    log_action(request.user, "Archivó tipo de documento", f"Tipo de documento '{doc_type.name}' archivado.")
+    return JsonResponse({'success': True, 'message': f"Tipo de documento '{doc_type.name}' archivado correctamente."})
+
+    
+@permission_required('main.restore_documenttype', login_url='unauthorized')
+def archived_document_types(request):
+    """
+    Vista para listar los Tipos de Documentos archivados.
+    Utiliza el manager 'all_objects' para acceder a todos los registros.
+    """
+    doc_types = DocumentType.all_objects.filter(is_archived=True).order_by('name')
+    return render(request, 'archived_document_types.html', {'doc_types': doc_types})
+
+
+@permission_required('main.restore_documenttype', login_url='unauthorized')
+def restore_document_type(request, doc_type_id):
+    """
+    Vista para restaurar un Tipo de Documento archivado.
+    """
+    doc_type = get_object_or_404(DocumentType.all_objects, pk=doc_type_id)
+    if not doc_type.is_archived:
+        messages.error(request, f"El tipo de documento '{doc_type.name}' no se encuentra archivado.")
+    else:
+        doc_type.is_archived = False
+        doc_type.save()
+        log_action(request.user, "Restauró un tipo de documento", f"Tipo de documento '{doc_type.name}' restaurado.")
+        messages.success(request, f"Tipo de documento '{doc_type.name}' restaurado correctamente.")
+    return redirect('archived_document_types')
+

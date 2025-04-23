@@ -8,27 +8,32 @@ from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.utils.text import slugify
 from main.models.flight import Flight
+import uuid
+from main.models.document_type import DocumentType
+
 
 def generate_document_filename(instance, filename):
     """
-    Genera un nombre de archivo usando el tipo de documento, el número de vuelo y la fecha/hora actual en la zona horaria de Panamá.
-    Formato: "documents/{tipo_documento}-{flight_number}-{YYYYMMDD}_{HHMMSS}{ext}"
-    Ejemplo: "documents/oirsa-12B1514-20250417_220156.png"
+    Genera un nombre de archivo siguiendo el formato:
+    "documents/{flight_number}-{YYYYMMDD}_{HHMMSS}_{unique_id}{ext}"
+    Ejemplo: "documents/12B1514-20250417_220156_5a3f2e9c.png"
     """
-    flight = instance.flight
-    flight_number = slugify(flight.flight_number) if flight.flight_number else "vuelo"
-    # Normalizamos el tipo de documento usando slugify
-    doc_type_slug = slugify(instance.doc_type) if instance.doc_type else "documento"
+    # Obtener el número de vuelo y formatearlo para evitar caracteres especiales
+    flight_number = slugify(instance.flight.flight_number) if instance.flight.flight_number else "vuelo"
     # Obtener la hora actual en la zona horaria de Panamá
     panama_tz = pytz.timezone("America/Panama")
     now = datetime.now(panama_tz)
     date_str = now.strftime("%Y%m%d")
     time_str = now.strftime("%H%M%S")
+    # Generar un UUID corto para asegurar unicidad (8 caracteres)
+    unique_id = uuid.uuid4().hex[:8]
+    # Obtener la extensión del archivo original
     _, ext = os.path.splitext(filename)
-    return f"documents/{doc_type_slug}-{flight_number}-{date_str}_{time_str}{ext}"
+    # Nombre final del archivo
+    return f"documents/{flight_number}-{date_str}_{time_str}_{unique_id}{ext}"
 
 class Document(models.Model):
-    doc_type = models.CharField(max_length=50)
+    doc_type = models.ForeignKey(DocumentType, on_delete=models.PROTECT)
     file = models.FileField(upload_to=generate_document_filename)
     flight = models.ForeignKey(Flight, on_delete=models.CASCADE, related_name='documents')
 
@@ -36,7 +41,7 @@ class Document(models.Model):
         return f"{self.doc_type} - {self.file.name}"
     
     class Meta:
-        pass
+        default_permissions = ()  # 🔒 Desactiva los permisos automáticos
 
 @receiver(pre_delete, sender=Document)
 def delete_document_file(sender, instance, **kwargs):
