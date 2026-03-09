@@ -2,24 +2,39 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use App\Models\DocumentType;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // ─── Super admin ──────────────────────────────────────────────
+        User::firstOrCreate(
+            ['email' => 'admin@girag.com'],
+            [
+                'name'                  => 'admin',
+                'password'              => Hash::make('admin1234'),
+                'is_flight_supervisor'  => true,
+                'is_billing_supervisor' => true,
+                'is_admin_vuelos'       => true,
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // ─── Tipos de documento por defecto ───────────────────────────
+        $docTypes = [
+            'Reporte de Rampa',
+            'Reporte de Fumigación',
+            'Bill of Lading',
+            'Carta de Porte',
+            'Manifiesto de Carga',
+            'Otro',
+        ];
+
+        foreach ($docTypes as $name) {
+            DocumentType::firstOrCreate(['name' => $name]);
+        }
     }
 }
